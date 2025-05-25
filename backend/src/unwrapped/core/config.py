@@ -7,9 +7,6 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     database_url: str = "postgresql://postgres:postgres@localhost:5432/unwrapped"
-    test_database_url: str = (
-        "postgresql://postgres:postgres@localhost:5432/unwrapped_test"
-    )
     secret_key: str = "development-secret-key-change-in-production-12345"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
