@@ -8,6 +8,20 @@ data "external_schema" "sqlmodel" {
   ]
 }
 
+env "production" {
+  src = data.external_schema.sqlmodel.url
+  dev = "docker://postgres/15/dev?search_path=public"
+  url = getenv("POSTGRES_PROD_URL")
+  migration {
+    dir = "file://migrations"
+  }
+  format {
+    migrate {
+      diff = "{{ sql . \"  \" }}"
+    }
+  }
+}
+
 env "local" {
   src = data.external_schema.sqlmodel.url
   dev = "docker://postgres/15/dev?search_path=public"
