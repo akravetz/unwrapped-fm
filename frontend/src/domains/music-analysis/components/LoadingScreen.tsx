@@ -29,9 +29,28 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const { refreshLatestAnalysis } = useAuth();
-  const [visibleMessages, setVisibleMessages] = useState<number>(0);
-  const [isComplete, setIsComplete] = useState(false);
+  const [messageStates, setMessageStates] = useState<boolean[]>(
+    new Array(loadingMessages.length).fill(false)
+  );
   const [analysisStarted, setAnalysisStarted] = useState(false);
+
+  // Start sequential message display
+  useEffect(() => {
+    const showNextMessage = (index: number) => {
+      if (index < loadingMessages.length) {
+        setTimeout(() => {
+          setMessageStates(prev => {
+            const newStates = [...prev];
+            newStates[index] = true;
+            return newStates;
+          });
+          showNextMessage(index + 1);
+        }, index === 0 ? 500 : 1500); // First message shows after 500ms, others after 1.5s
+      }
+    };
+
+    showNextMessage(0);
+  }, []);
 
   // Start analysis when component mounts
   useEffect(() => {
@@ -47,43 +66,19 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
       // Start the analysis in the background
       const analysisPromise = apiClient.analyzeMusic();
 
-      // Show loading messages while analysis runs
-      const messageTimer = setInterval(() => {
-        setVisibleMessages(prev => {
-          if (prev < loadingMessages.length) {
-            return prev + 1;
-          } else {
-            clearInterval(messageTimer);
-            return prev;
-          }
-        });
-      }, 1500); // Show new message every 1.5 seconds
-
       // Wait for analysis to complete
       await analysisPromise;
 
       // Update the auth context with the new analysis
       await refreshLatestAnalysis();
 
-      // Clear message timer if still running
-      clearInterval(messageTimer);
-
-      // Ensure all messages are shown
-      setVisibleMessages(loadingMessages.length);
-
-      // Wait a bit then complete
-      setTimeout(() => {
-        setIsComplete(true);
-        onComplete?.();
-      }, 2000);
+      // Navigate to results immediately
+      onComplete?.();
 
     } catch (error) {
       console.error('Analysis failed:', error);
-      // Still complete the loading screen even if analysis fails
-      setTimeout(() => {
-        setIsComplete(true);
-        onComplete?.();
-      }, 2000);
+      // Still navigate to results on error
+      onComplete?.();
     }
   };
 
@@ -118,20 +113,17 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
                   fontWeight: 700,
                 }}
               >
-                Unwrapped.fm
+                unwrapped.fm
               </Typography>
 
-              {/* Loading messages */}
+              {/* Loading messages - sequential display */}
               <Box sx={{ minHeight: '300px', width: '100%' }}>
                 <Stack spacing={2} alignItems="flex-start">
                   {loadingMessages.map((message, index) => (
                     <Fade
                       key={index}
-                      in={visibleMessages > index}
+                      in={messageStates[index]}
                       timeout={800}
-                      style={{
-                        transitionDelay: visibleMessages > index ? '0ms' : '0ms'
-                      }}
                     >
                       <Typography
                         variant="body1"
@@ -139,7 +131,8 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
                         sx={{
                           lineHeight: 1.6,
                           textAlign: 'left',
-                          width: '100%'
+                          width: '100%',
+                          opacity: messageStates[index] ? 1 : 0
                         }}
                       >
                         {message}
@@ -148,22 +141,6 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
                   ))}
                 </Stack>
               </Box>
-
-              {/* Results ready indicator */}
-              {isComplete && (
-                <Fade in={isComplete} timeout={1000}>
-                  <Typography
-                    variant="h6"
-                    color="primary.main"
-                    sx={{
-                      fontWeight: 600,
-                      mt: 3
-                    }}
-                  >
-                    Results are ready →
-                  </Typography>
-                </Fade>
-              )}
             </Stack>
           </CardContent>
         </Card>
