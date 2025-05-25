@@ -34,6 +34,7 @@ class TestAnalyzeEndpoints:
         assert "rating_description" in data
         assert "x_axis_pos" in data
         assert "y_axis_pos" in data
+        assert "share_token" in data
         assert "analyzed_at" in data
 
         # Verify data types
@@ -86,6 +87,7 @@ class TestAnalyzeEndpoints:
             rating_description="Test description",
             x_axis_pos=0.5,
             y_axis_pos=-0.3,
+            share_token="test_share_token",
         )
         async_session.add(analysis)
         await async_session.commit()
@@ -103,4 +105,5 @@ class TestAnalyzeEndpoints:
         assert data["rating_description"] == "Test description"
         assert data["x_axis_pos"] == 0.5
         assert data["y_axis_pos"] == -0.3
+        assert data["share_token"] == "test_share_token"
         assert "analyzed_at" in data

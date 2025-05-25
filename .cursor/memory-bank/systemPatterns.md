@@ -2,127 +2,327 @@
 
 ## Architecture Overview
 
-### Simplified Three-Layer Architecture
+### Three-Tier Architecture
 ```
-Frontend (React) → API Gateway (FastAPI) → Database (PostgreSQL)
-                ↓
-            Spotify API
-```
-
-## Key Design Patterns
-
-### 1. Stateless Analysis Pattern
-- **No music data persistence** - fetch, analyze, discard
-- **Results-only storage** - store AI verdict, not raw data
-- **Fresh data every time** - always current listening habits
-
-### 2. Token Management Pattern
-- **Automatic refresh** - tokens refreshed 5 minutes before expiry
-- **Graceful degradation** - clear error messages for auth failures
-- **Session persistence** - JWT tokens for frontend state
-
-### 3. Service Layer Pattern
-```
-Router → Service → External API
-  ↓        ↓           ↓
- HTTP   Business    Spotify
-Logic    Logic      Integration
+Frontend (React + TypeScript)
+    ↓ HTTPS/REST API
+Backend (FastAPI + Python)
+    ↓ SQL/Atlas
+Database (PostgreSQL)
 ```
 
-## Database Design (Simplified)
+### Core Design Patterns
 
-### Core Tables
+#### 1. **Three-Modal User Flow**
+```
+LoginModal → LoadingModal → ResultsModal
+     ↓            ↓            ↓
+  OAuth Flow → AI Analysis → Share Link
+```
+
+#### 2. **Automatic Sharing Pattern**
+```
+Analysis Creation → Token Generation → Public Access
+       ↓                  ↓              ↓
+   Store Result → Secure 15-char → No Auth Required
+```
+
+#### 3. **Stateless Analysis Pattern**
+```
+Fetch Spotify Data → Analyze → Return Results
+        ↓              ↓           ↓
+   (No Storage) → AI Logic → Store Only Verdict
+```
+
+## Backend Patterns
+
+### Service Layer Architecture
+```python
+# Clean separation of concerns
+Router → Service → Database
+  ↓        ↓         ↓
+HTTP → Business → Persistence
+```
+
+**Example Implementation:**
+```python
+# Router (HTTP layer)
+@router.post("/analyze")
+async def analyze_music(session: AsyncSession = Depends(get_session)):
+    service = MusicAnalysisService(session)
+    return await service.analyze_user_music_taste(user_id)
+
+# Service (Business layer)
+class MusicAnalysisService:
+    async def analyze_user_music_taste(self, user_id: int):
+        # 1. Fetch data
+        music_data = await self._fetch_user_music_data(user_id)
+        # 2. Analyze
+        analysis = await self._analyze_music_with_ai(music_data)
+        # 3. Generate share token
+        token = await generate_unique_share_token(self.session)
+        # 4. Store and return
+        return await self._store_and_return_result(analysis, token)
+```
+
+### Database Patterns
+
+#### Minimal Schema Design
 ```sql
--- User authentication and Spotify tokens
-user (
-  id, spotify_id, email, display_name,
-  access_token, refresh_token, token_expires_at
-)
-
--- AI analysis results only
-musicanalysisresult (
-  id, user_id, rating_text, rating_description,
-  x_axis_pos, y_axis_pos, created_at
-)
+-- Only essential data stored
+user (auth + spotify tokens)
+musicanalysisresult (verdict + sharing)
 ```
 
-### Migration Strategy
-- **Atlas migrations** - version-controlled schema changes
-- **Fresh start approach** - clean database reset for major refactors
-- **Simplified models** - removed complex music storage
-
-## API Design Patterns
-
-### RESTful Endpoints
-```
-POST /api/v1/music/analyze        # Main analysis endpoint
-GET  /api/v1/music/analysis/latest # Get previous results
-GET  /api/v1/auth/me              # User profile
-POST /api/v1/auth/login           # Spotify OAuth
+#### Migration Pattern with Atlas
+```bash
+# Schema changes via Atlas
+atlas migrate diff feature_name --env local
+atlas migrate apply --env local
 ```
 
-### Response Patterns
-```json
-{
-  "rating_text": "PARTY ANIMAL",
-  "rating_description": "Your music taste...",
-  "x_axis_pos": 0.3,
-  "y_axis_pos": 0.8,
-  "analyzed_at": "2024-05-25T04:45:00Z"
-}
+#### Secure Token Generation
+```python
+# Cryptographically secure sharing
+def generate_share_token() -> str:
+    alphabet = string.ascii_letters + string.digits  # 62 chars
+    return ''.join(secrets.choice(alphabet) for _ in range(15))
+    # 62^15 = ~1.4 × 10^26 combinations
+```
+
+### API Design Patterns
+
+#### RESTful Endpoints
+```
+POST /api/v1/music/analyze          # Create analysis
+GET  /api/v1/music/analysis/latest  # Get user's latest
+GET  /api/v1/public/share/{token}   # Public viewing (no auth)
+```
+
+#### Error Handling Pattern
+```python
+try:
+    result = await spotify_api_call()
+except Exception as e:
+    # Graceful degradation
+    logger.error(f"Spotify API failed: {e}")
+    result = {"items": []}  # Empty fallback
+```
+
+#### Authentication Pattern
+```python
+# JWT + Spotify OAuth
+@router.post("/analyze")
+async def analyze(current_user: User = Depends(get_current_user)):
+    # Protected endpoint with user context
+```
+
+## Frontend Patterns
+
+### Context-Based State Management
+```typescript
+// Centralized state with React Context
+AuthContext → User authentication state
+AnalysisContext → Analysis flow state
+```
+
+#### Analysis Flow State Machine
+```typescript
+type AnalysisStage = 'login' | 'loading' | 'results' | 'error';
+
+// State transitions
+login → (auth success) → loading → (analysis complete) → results
+  ↓                        ↓                              ↓
+error ← (auth failed) ← error ← (analysis failed) ← error
+```
+
+### Component Architecture
+```
+App (Router)
+├── LoginModal (OAuth initiation)
+├── LoadingModal (Progress + messages)
+├── ResultsModal (Verdict + sharing)
+└── PublicAnalysisView (Public sharing page)
+```
+
+### Sharing UI Pattern
+```typescript
+// Wireframe-accurate implementation
+<TextField
+  value={shareUrl}
+  InputProps={{
+    endAdornment: (
+      <IconButton onClick={handleCopyUrl}>
+        <ContentCopy />
+      </IconButton>
+    )
+  }}
+/>
+```
+
+### Routing Pattern
+```typescript
+// Public/private route separation
+<Routes>
+  <Route path="/share/:token" element={<PublicAnalysisView />} />
+  <Route path="/" element={<AuthenticatedApp />} />
+</Routes>
+```
+
+## Security Patterns
+
+### Token Security
+```python
+# Share tokens
+- 15 characters from 62-character alphabet
+- Cryptographically secure generation
+- Database uniqueness constraint
+- No expiration (permanent sharing)
+```
+
+### Authentication Security
+```python
+# JWT + Spotify OAuth
+- Secure token storage in localStorage
+- Automatic token refresh
+- Proper CORS configuration
+- HTTPS in production
+```
+
+### Data Privacy
+```python
+# Public sharing privacy
+- Only analysis results exposed
+- No user personal information
+- No Spotify listening data
+- Anonymous public viewing
 ```
 
 ## Error Handling Patterns
 
-### Exception Hierarchy
-```
-SpotifyAPIError → HTTPException(502)
-AuthenticationError → HTTPException(401)
-ValidationError → HTTPException(400)
-```
+### Backend Error Handling
+```python
+# Graceful degradation pattern
+try:
+    spotify_data = await fetch_spotify_data()
+except SpotifyAPIError:
+    # Continue with empty data
+    spotify_data = {"items": []}
 
-### Graceful Degradation
-- **Token refresh failures** - redirect to re-auth
-- **Spotify API errors** - user-friendly messages
-- **Analysis failures** - fallback to basic analysis
-
-## Testing Patterns
-
-### Test Structure
-```
-tests/
-├── test_auth.py              # Authentication logic
-├── test_analyze_endpoint.py  # Analysis endpoints
-├── test_user_service.py      # User management
-└── conftest.py              # Shared fixtures
+# Always return a result
+if not spotify_data:
+    return default_analysis("MYSTERIOUS LISTENER")
 ```
 
-### Mock Strategy
-- **Spotify API mocking** - consistent test data
-- **Database isolation** - transaction rollback per test
-- **JWT token generation** - valid tokens for auth tests
+### Frontend Error Handling
+```typescript
+// User-friendly error states
+if (error) {
+  return <LoginModal open={true} />; // Retry flow
+}
 
-## Security Patterns
-
-### Authentication Flow
-1. **Spotify OAuth** - secure third-party auth
-2. **JWT tokens** - stateless session management
-3. **Token rotation** - automatic refresh handling
-4. **CORS configuration** - frontend-specific origins
-
-### Data Protection
-- **No sensitive storage** - music data not persisted
-- **Token encryption** - secure storage of Spotify tokens
-- **Input validation** - all user inputs validated
+// Loading states
+if (loading) {
+  return <LoadingModal open={true} />;
+}
+```
 
 ## Performance Patterns
 
-### Async Operations
-- **Non-blocking I/O** - all database and API calls async
-- **Concurrent requests** - multiple Spotify API calls
-- **Connection pooling** - efficient database connections
+### Database Optimization
+```sql
+-- Efficient indexes
+CREATE UNIQUE INDEX ix_musicanalysisresult_share_token
+ON musicanalysisresult (share_token);
 
-### Caching Strategy
-- **No music caching** - always fresh data
-- **Analysis caching** - store results for quick retrieval
-- **Token caching** - avoid unnecessary refresh calls
+CREATE INDEX ix_user_spotify_id
+ON user (spotify_id);
+```
+
+### API Optimization
+```python
+# Batch Spotify API calls
+track_ids = list(all_track_ids)
+for i in range(0, len(track_ids), 100):  # Spotify limit
+    batch = track_ids[i:i+100]
+    features = await get_audio_features(batch)
+```
+
+### Frontend Optimization
+```typescript
+// Lazy loading and code splitting
+const PublicAnalysisView = lazy(() => import('./PublicAnalysisView'));
+
+// Efficient state updates
+const [state, setState] = useState(initialState);
+setState(prev => ({ ...prev, newField: value }));
+```
+
+## Testing Patterns
+
+### Backend Testing
+```python
+# Async test patterns
+@pytest.mark.asyncio
+async def test_analysis_service():
+    async with AsyncSession() as session:
+        service = MusicAnalysisService(session)
+        result = await service.analyze_user_music_taste(user_id)
+        assert result.rating_text is not None
+```
+
+### Test Coverage Strategy
+```
+Authentication: 85-100% (critical security)
+Analysis Logic: 46-69% (business logic)
+Database Layer: 78% (data integrity)
+Core Utils: 78-94% (shared functionality)
+```
+
+## Deployment Patterns
+
+### Development Setup
+```bash
+# Backend
+cd backend/
+uv run uvicorn src.unwrapped.main:app --reload --port 8443
+
+# Frontend
+cd frontend/
+npm run dev  # Port 5175
+
+# Database
+atlas migrate apply --env local
+```
+
+### Production Considerations
+```python
+# Environment-based configuration
+DATABASE_URL = os.getenv("DATABASE_URL")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+```
+
+## Key Design Decisions
+
+### 1. **Automatic Sharing**
+- **Decision**: Generate share tokens automatically
+- **Rationale**: Removes friction, matches user wireframe
+- **Implementation**: Secure tokens with every analysis
+
+### 2. **Stateless Analysis**
+- **Decision**: Don't store Spotify music data
+- **Rationale**: Privacy, simplicity, storage efficiency
+- **Implementation**: Fetch → Analyze → Discard → Store verdict only
+
+### 3. **Three-Modal Flow**
+- **Decision**: Single-page app with modal progression
+- **Rationale**: Matches wireframe, smooth UX
+- **Implementation**: React Context state machine
+
+### 4. **Public Sharing**
+- **Decision**: No authentication for viewing shared results
+- **Rationale**: Maximum shareability, viral potential
+- **Implementation**: Public API endpoint with secure tokens
+
+These patterns create a secure, scalable, and maintainable architecture that delivers the core product vision while maintaining high code quality and user experience standards.

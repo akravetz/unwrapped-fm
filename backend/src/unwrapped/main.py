@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import auth_router
+from .core.config import settings
 from .music.analyze_router import router as analyze_router
 from .music.public_router import router as public_router
 
@@ -13,13 +14,10 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Configure CORS
+# Configure CORS with dynamic origins based on environment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://localhost:5174",
-        "https://127.0.0.1:5174",
-    ],  # Vite frontend HTTPS URL (actual port)
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

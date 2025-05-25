@@ -18,6 +18,27 @@ class Settings(BaseSettings):
     spotify_redirect_uri: str = "https://127.0.0.1:8443/api/v1/auth/callback"
     frontend_url: str = "https://127.0.0.1:5174"
 
+    # Production domain support
+    environment: str = "development"  # development, staging, production
+    production_domain: str = "unwrapped.fm"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Get CORS origins based on environment."""
+        if self.environment == "production":
+            return [
+                f"https://{self.production_domain}",
+                f"https://www.{self.production_domain}",
+                # Keep localhost for development testing
+                "https://localhost:5174",
+                "https://127.0.0.1:5174",
+            ]
+        else:
+            return [
+                "https://localhost:5174",
+                "https://127.0.0.1:5174",
+            ]
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

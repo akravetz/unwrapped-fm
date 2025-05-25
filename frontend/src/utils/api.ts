@@ -1,6 +1,32 @@
 // API client utilities
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:8443';
+// Determine API base URL based on environment
+const getApiBaseUrl = (): string => {
+  // Check for explicit environment variable first
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Auto-detect based on current domain in production
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+
+    // Production domains
+    if (hostname === 'unwrapped.fm' || hostname === 'www.unwrapped.fm') {
+      return 'https://api.unwrapped.fm';
+    }
+
+    // Vercel preview deployments
+    if (hostname.includes('vercel.app')) {
+      return 'https://api.unwrapped.fm';
+    }
+  }
+
+  // Default to localhost for development
+  return 'https://localhost:8443';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiError extends Error {
   status: number;
