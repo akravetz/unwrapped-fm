@@ -8,7 +8,7 @@ CRITICAL CONFIGURATION REQUIREMENT:
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -148,7 +148,7 @@ async def auth_status(
 
     # Check if Spotify token is still valid
     spotify_token_valid = (
-        user.token_expires_at and user.token_expires_at > datetime.utcnow()
+        user.token_expires_at and user.token_expires_at > datetime.now(UTC)
     )
 
     return {
