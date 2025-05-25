@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/unwrapped"
     secret_key: str = "development-secret-key-change-in-production-12345"
     algorithm: str = "HS256"
+    port: int = (8443,)
     access_token_expire_minutes: int = 30
     spotify_client_id: str = "development_client_id"
     spotify_client_secret: str = "development_client_secret"
