@@ -17,12 +17,12 @@ import { ClientWrapper } from './ClientWrapper';
 type AppState = 'login' | 'loading' | 'results';
 
 function HomePageContent() {
-  const { isAuthenticated, user, isLoading, latestAnalysis, analysisLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, latestAnalysis } = useAuth();
   const [appState, setAppState] = useState<AppState>('login');
 
   // Auto-route based on authentication and analysis state
   useEffect(() => {
-    if (isAuthenticated && user && !analysisLoading) {
+    if (isAuthenticated && user) {
       if (latestAnalysis) {
         // User has existing results - go directly to results
         setAppState('results');
@@ -34,24 +34,7 @@ function HomePageContent() {
       // User not authenticated - show login
       setAppState('login');
     }
-  }, [isAuthenticated, user, latestAnalysis, analysisLoading, isLoading]);
-
-  if (isLoading || analysisLoading) {
-    return (
-      <Container maxWidth="sm">
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-        >
-          <Typography variant="h6" color="text.secondary">
-            Loading...
-          </Typography>
-        </Box>
-      </Container>
-    );
-  }
+  }, [isAuthenticated, user, latestAnalysis, isLoading]);
 
   // Show screens based on app state
   switch (appState) {
@@ -140,22 +123,7 @@ function HomePageContent() {
 
 export default function HomePage() {
   return (
-    <ClientWrapper
-      fallback={
-        <Container maxWidth="sm">
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="100vh"
-          >
-            <Typography variant="h6" color="text.secondary">
-              Loading...
-            </Typography>
-          </Box>
-        </Container>
-      }
-    >
+    <ClientWrapper>
       <HomePageContent />
     </ClientWrapper>
   );
