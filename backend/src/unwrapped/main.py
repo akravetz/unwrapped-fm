@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import auth_router
 from .music.analyze_router import router as analyze_router
+from .music.public_router import router as public_router
 
 app = FastAPI(
     title="unwrapped.fm",
@@ -27,6 +28,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(analyze_router, prefix="/api/v1")
+app.include_router(public_router, prefix="/api/v1")
 
 
 @app.get("/")

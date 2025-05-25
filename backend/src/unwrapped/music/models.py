@@ -18,6 +18,13 @@ class MusicAnalysisResult(SQLModel, table=True):
     x_axis_pos: float  # Position on x-axis of quadrant graph (-1.0 to 1.0)
     y_axis_pos: float  # Position on y-axis of quadrant graph (-1.0 to 1.0)
 
+    # Sharing
+    share_token: str = Field(unique=True, index=True)  # 15-character random string
+    shared_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column=Column(DateTime(timezone=True)),
@@ -26,6 +33,17 @@ class MusicAnalysisResult(SQLModel, table=True):
 
 class MusicAnalysisResponse(SQLModel):
     """Music analysis API response model."""
+
+    rating_text: str
+    rating_description: str
+    x_axis_pos: float
+    y_axis_pos: float
+    share_token: str
+    analyzed_at: datetime
+
+
+class PublicAnalysisResponse(SQLModel):
+    """Public analysis response model (no sensitive data)."""
 
     rating_text: str
     rating_description: str

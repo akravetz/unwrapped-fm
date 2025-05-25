@@ -3,13 +3,14 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:8443';
 
 class ApiError extends Error {
-  constructor(
-    public status: number,
-    public statusText: string,
-    message: string
-  ) {
+  status: number;
+  statusText: string;
+
+  constructor(status: number, statusText: string, message: string) {
     super(message);
     this.name = 'ApiError';
+    this.status = status;
+    this.statusText = statusText;
   }
 }
 
@@ -89,6 +90,22 @@ export class ApiClient {
     return this.request<{ message: string }>('/api/v1/auth/logout', {
       method: 'POST',
     });
+  }
+
+  // Music analysis endpoints
+  async analyzeMusic(): Promise<import('../types/analysis').AnalysisResult> {
+    return this.request<import('../types/analysis').AnalysisResult>('/api/v1/music/analyze', {
+      method: 'POST',
+    });
+  }
+
+  async getLatestAnalysis(): Promise<import('../types/analysis').AnalysisResult> {
+    return this.request<import('../types/analysis').AnalysisResult>('/api/v1/music/analysis/latest');
+  }
+
+  // Public sharing endpoints (no auth required)
+  async getSharedAnalysis(shareToken: string): Promise<import('../types/analysis').PublicAnalysisResult> {
+    return this.request<import('../types/analysis').PublicAnalysisResult>(`/api/v1/public/share/${shareToken}`);
   }
 }
 

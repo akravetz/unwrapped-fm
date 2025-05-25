@@ -1,7 +1,7 @@
 # Product Context - unwrapped.fm
 
 ## Why This Exists
-Music streaming has made everyone a curator, but most people have terrible taste. MusicJudge provides brutally honest AI analysis of Spotify listening habits, delivering entertaining verdicts that users can share and laugh about.
+Music streaming has made everyone a curator, but most people have terrible taste. unwrapped.fm provides brutally honest AI analysis of Spotify listening habits, delivering entertaining verdicts that users can share and laugh about.
 
 ## Problem Statement
 - People are curious about their music taste but lack objective analysis

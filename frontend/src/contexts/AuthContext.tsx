@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { AuthContextType, AuthState, User } from '../types/auth';
+import type { AuthContextType, AuthState } from '../types/auth';
 import { apiClient } from '../utils/api';
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -11,9 +10,6 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     user: null,
@@ -22,15 +18,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     error: null,
   });
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from localStorage and handle OAuth callback
   useEffect(() => {
     initializeAuth();
-  }, []);
-
-  // Handle OAuth callback
-  useEffect(() => {
     handleAuthCallback();
-  }, [location.search]);
+  }, []);
 
   const initializeAuth = async () => {
     try {
@@ -64,7 +56,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const handleAuthCallback = () => {
-    const urlParams = new URLSearchParams(location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const error = urlParams.get('error');
 
@@ -78,8 +70,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         error: null,
       }));
 
-      // Clear URL parameters and navigate to home
-      navigate('/', { replace: true });
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
 
       // Fetch user data
       fetchUserData();
@@ -91,7 +83,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }));
 
       // Clear URL parameters
-      navigate('/', { replace: true });
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   };
 
@@ -104,6 +96,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading: false,
         error: null,
       }));
+
+      // Trigger analysis start after successful authentication
+      // This will be handled by the AnalysisContext
+      window.dispatchEvent(new CustomEvent('authSuccess'));
     } catch (error) {
       console.error('Failed to fetch user data:', error);
       setAuthState(prev => ({
@@ -150,8 +146,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         error: null,
       });
 
-      // Navigate to home page
-      navigate('/', { replace: true });
+      // Clear any URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   };
 

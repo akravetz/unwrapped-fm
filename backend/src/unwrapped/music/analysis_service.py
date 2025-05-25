@@ -8,7 +8,8 @@ from sqlmodel import select
 
 from ..auth.service import UserService
 from ..core.exceptions import SpotifyAPIError
-from .models import MusicAnalysisResponse, MusicAnalysisResult
+from .models import MusicAnalysisResponse, MusicAnalysisResult, PublicAnalysisResponse
+from .sharing import generate_unique_share_token
 from .spotify import spotify_music_client
 
 
@@ -73,21 +74,36 @@ class MusicAnalysisService:
 
             # Fetch top tracks for all time ranges
             for time_range in ["short_term", "medium_term", "long_term"]:
-                music_data[
-                    f"top_tracks_{time_range}"
-                ] = await self.spotify_client.get_user_top_tracks(
-                    access_token, time_range, limit=50
-                )
-                music_data[
-                    f"top_artists_{time_range}"
-                ] = await self.spotify_client.get_user_top_artists(
-                    access_token, time_range, limit=50
-                )
+                try:
+                    music_data[
+                        f"top_tracks_{time_range}"
+                    ] = await self.spotify_client.get_user_top_tracks(
+                        access_token, time_range, limit=50
+                    )
+                except Exception as e:
+                    print(f"Error fetching top tracks for {time_range}: {e}")
+                    music_data[f"top_tracks_{time_range}"] = {"items": []}
+
+                try:
+                    music_data[
+                        f"top_artists_{time_range}"
+                    ] = await self.spotify_client.get_user_top_artists(
+                        access_token, time_range, limit=50
+                    )
+                except Exception as e:
+                    print(f"Error fetching top artists for {time_range}: {e}")
+                    music_data[f"top_artists_{time_range}"] = {"items": []}
 
             # Fetch recently played tracks
-            music_data[
-                "recently_played"
-            ] = await self.spotify_client.get_recently_played(access_token, limit=50)
+            try:
+                music_data[
+                    "recently_played"
+                ] = await self.spotify_client.get_recently_played(
+                    access_token, limit=50
+                )
+            except Exception as e:
+                print(f"Error fetching recently played tracks: {e}")
+                music_data["recently_played"] = {"items": []}
 
             # Extract track IDs for audio features
             track_ids = set()
@@ -105,12 +121,19 @@ class MusicAnalysisService:
             track_ids_list = list(track_ids)
             audio_features = []
 
-            for i in range(0, len(track_ids_list), 100):
-                batch = track_ids_list[i : i + 100]
-                batch_features = await self.spotify_client.get_audio_features(
-                    access_token, batch
-                )
-                audio_features.extend(batch_features.get("audio_features", []))
+            if track_ids_list:
+                for i in range(0, len(track_ids_list), 100):
+                    batch = track_ids_list[i : i + 100]
+                    try:
+                        batch_features = await self.spotify_client.get_audio_features(
+                            access_token, batch
+                        )
+                        audio_features.extend(batch_features.get("audio_features", []))
+                    except Exception as e:
+                        print(
+                            f"Error fetching audio features for batch {i // 100 + 1}: {e}"
+                        )
+                        # Continue with other batches
 
             music_data["audio_features"] = audio_features
 
@@ -130,6 +153,22 @@ class MusicAnalysisService:
         total_tracks = 0
         genres = set()
         avg_popularity = 0
+
+        # Check if we have any music data at all
+        has_any_data = False
+        for time_range in ["short_term", "medium_term", "long_term"]:
+            if music_data.get(f"top_tracks_{time_range}", {}).get("items"):
+                has_any_data = True
+                break
+
+        if not has_any_data and not music_data.get("recently_played", {}).get("items"):
+            # No music data available - return a default analysis
+            return {
+                "rating_text": "MYSTERIOUS LISTENER",
+                "rating_description": "Your music taste is so unique that even Spotify doesn't know what to make of it. Either you're incredibly private about your listening habits, or you're the type of person who listens to music on vinyl exclusively. We respect the mystery.",
+                "x_axis_pos": 0.0,
+                "y_axis_pos": 0.0,
+            }
 
         # Count tracks and extract genres from top artists
         for time_range in ["short_term", "medium_term", "long_term"]:
@@ -226,6 +265,9 @@ class MusicAnalysisService:
             # Analyze with AI
             analysis_result = await self._analyze_music_with_ai(music_data)
 
+            # Generate unique share token
+            share_token = await generate_unique_share_token(self.session)
+
             # Store result in database
             db_result = MusicAnalysisResult(
                 user_id=user_id,
@@ -233,6 +275,7 @@ class MusicAnalysisService:
                 rating_description=analysis_result["rating_description"],
                 x_axis_pos=analysis_result["x_axis_pos"],
                 y_axis_pos=analysis_result["y_axis_pos"],
+                share_token=share_token,
             )
 
             self.session.add(db_result)
@@ -245,6 +288,7 @@ class MusicAnalysisService:
                 rating_description=db_result.rating_description,
                 x_axis_pos=db_result.x_axis_pos,
                 y_axis_pos=db_result.y_axis_pos,
+                share_token=db_result.share_token,
                 analyzed_at=db_result.created_at,
             )
 
@@ -272,8 +316,34 @@ class MusicAnalysisService:
                 rating_description=analysis.rating_description,
                 x_axis_pos=analysis.x_axis_pos,
                 y_axis_pos=analysis.y_axis_pos,
+                share_token=analysis.share_token,
                 analyzed_at=analysis.created_at,
             )
 
         except Exception as e:
             raise SpotifyAPIError(f"Failed to get latest analysis: {e}") from e
+
+    async def get_analysis_by_share_token(
+        self, share_token: str
+    ) -> PublicAnalysisResponse:
+        """Get analysis result by share token for public viewing."""
+        try:
+            stmt = select(MusicAnalysisResult).where(
+                MusicAnalysisResult.share_token == share_token
+            )
+            result = await self.session.execute(stmt)
+            analysis = result.scalar_one_or_none()
+
+            if not analysis:
+                raise SpotifyAPIError("Analysis not found")
+
+            return PublicAnalysisResponse(
+                rating_text=analysis.rating_text,
+                rating_description=analysis.rating_description,
+                x_axis_pos=analysis.x_axis_pos,
+                y_axis_pos=analysis.y_axis_pos,
+                analyzed_at=analysis.created_at,
+            )
+
+        except Exception as e:
+            raise SpotifyAPIError(f"Failed to get analysis by share token: {e}") from e

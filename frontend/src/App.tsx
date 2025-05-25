@@ -1,78 +1,56 @@
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { UserProfile } from './components/UserProfile';
-import { LoadingSpinner } from './components/LoadingSpinner';
-import { ErrorMessage } from './components/ErrorMessage';
 
-function LandingPage() {
-  const { login, isLoading, error, clearError } = useAuth();
-
-  const handleConnectSpotify = async () => {
-    await login();
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 to-purple-600 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
-        <div className="text-center">
-          {/* Error Message */}
-          {error && (
-            <ErrorMessage message={error} onDismiss={clearError} />
-          )}
-
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            🎵 unwrapped.fm
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Let AI analyze your Spotify listening history and judge your music taste.
-            Get personalized insights and shareable results!
-          </p>
-
-          <button
-            onClick={handleConnectSpotify}
-            disabled={isLoading}
-            className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Connecting...</span>
-              </>
-            ) : (
-              <>
-                <span>🎧</span>
-                <span>Connect with Spotify</span>
-              </>
-            )}
-          </button>
-
-          <p className="text-xs text-gray-500 mt-4">
-            We'll only access your music listening history. Your data stays secure.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { ThemeProvider, CssBaseline, Box } from '@mui/material';
+import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { AnalysisProvider, useAnalysis } from './contexts/AnalysisContext';
+import { LoginModal } from './components/modals/LoginModal';
+import { LoadingModal } from './components/modals/LoadingModal';
+import { ResultsModal } from './components/modals/ResultsModal';
+import { PublicAnalysisView } from './components/PublicAnalysisView';
+import { theme } from './theme/theme';
 
 function AppContent() {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { stage } = useAnalysis();
 
-  if (isLoading) {
-    return <LoadingSpinner message="Setting up your account..." />;
-  }
+  return (
+    <Box sx={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      {/* Three Modal System */}
+      <LoginModal open={stage === 'login'} />
+      <LoadingModal open={stage === 'loading'} />
+      <ResultsModal open={stage === 'results'} />
 
-  if (isAuthenticated && user) {
-    return <UserProfile user={user} />;
-  }
-
-  return <LandingPage />;
+      {/* Error state could be handled here or within the modals */}
+      {stage === 'error' && (
+        <LoginModal open={true} />
+      )}
+    </Box>
+  );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Routes>
+        {/* Public analysis view route */}
+        <Route path="/share/:shareToken" element={<PublicAnalysisView />} />
+
+        {/* Main app route */}
+        <Route path="/" element={
+          <AuthProvider>
+            <AnalysisProvider>
+              <AppContent />
+            </AnalysisProvider>
+          </AuthProvider>
+        } />
+      </Routes>
+    </ThemeProvider>
   );
 }
 
