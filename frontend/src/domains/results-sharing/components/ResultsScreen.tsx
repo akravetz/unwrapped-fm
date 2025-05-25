@@ -9,32 +9,49 @@ import {
   Card,
   CardContent,
   Button,
-  Avatar,
   Slider,
   Chip,
   IconButton
 } from '@mui/material';
 import { Share, Twitter, Facebook, Link as LinkIcon } from '@mui/icons-material';
+import { MusicAnalysisResponse } from '@/domains/authentication/types/auth.types';
 
 interface ResultsScreenProps {
-  user: {
-    display_name: string | null;
-    profile_image_url: string | null;
-  };
-  rating: {
-    category: string;
-    score: number; // 0-100
-    description: string;
-  };
+  analysis: MusicAnalysisResponse | null;
+  onAnalyzeAgain?: () => void;
   onStartOver?: () => void;
 }
 
-export function ResultsScreen({ user, rating, onStartOver }: ResultsScreenProps) {
+export function ResultsScreen({ analysis, onAnalyzeAgain, onStartOver }: ResultsScreenProps) {
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  if (!analysis) {
+    return (
+      <Container maxWidth="sm">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="100vh"
+        >
+          <Typography variant="h6" color="text.secondary">
+            Loading results...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  // Convert analysis data to display format
+  const rating = {
+    category: analysis.rating_text,
+    score: Math.round(((analysis.x_axis_pos + 1) / 2) * 100), // Convert -1,1 to 0-100
+    description: analysis.rating_description
+  };
 
   const handleShare = (platform: 'twitter' | 'facebook' | 'copy') => {
     const shareText = `I just got rated "${rating.category}" on unwrapped.fm! ${rating.description}`;
-    const shareUrl = 'https://unwrapped.fm';
+    const shareUrl = `https://unwrapped.fm/share/${analysis.share_token}`;
 
     switch (platform) {
       case 'twitter':
@@ -85,19 +102,7 @@ export function ResultsScreen({ user, rating, onStartOver }: ResultsScreenProps)
         >
           <CardContent>
             <Stack spacing={4} alignItems="center">
-              {/* Spotify Profile Picture */}
-              {user.profile_image_url && (
-                <Avatar
-                  src={user.profile_image_url}
-                  alt={user.display_name || 'User'}
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    border: '3px solid',
-                    borderColor: 'primary.main'
-                  }}
-                />
-              )}
+              {/* Note: Profile picture removed since analysis doesn't include user data */}
 
               {/* Title */}
               <Typography
@@ -245,26 +250,42 @@ export function ResultsScreen({ user, rating, onStartOver }: ResultsScreenProps)
                   mt: 3
                 }}
               >
-                https://unwrapped.fm/share/Mq3890
+                https://unwrapped.fm/share/{analysis.share_token}
               </Typography>
 
-              {/* Start Over Button */}
-              <Button
-                variant="outlined"
-                onClick={onStartOver}
-                sx={{
-                  mt: 2,
-                  textTransform: 'none',
-                  borderColor: 'text.secondary',
-                  color: 'text.secondary',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    color: 'primary.main'
-                  }
-                }}
-              >
-                Judge Someone Else
-              </Button>
+              {/* Action Buttons */}
+              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+                {onAnalyzeAgain && (
+                  <Button
+                    variant="contained"
+                    onClick={onAnalyzeAgain}
+                    sx={{
+                      textTransform: 'none',
+                      backgroundColor: 'primary.main',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark'
+                      }
+                    }}
+                  >
+                    Analyze Again
+                  </Button>
+                )}
+                <Button
+                  variant="outlined"
+                  onClick={onStartOver}
+                  sx={{
+                    textTransform: 'none',
+                    borderColor: 'text.secondary',
+                    color: 'text.secondary',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      color: 'primary.main'
+                    }
+                  }}
+                >
+                  Judge Someone Else
+                </Button>
+              </Stack>
             </Stack>
           </CardContent>
         </Card>

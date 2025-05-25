@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import Cookies from 'js-cookie';
-import { User, LoginResponse, AuthStatusResponse, ApiError } from '@/domains/authentication/types/auth.types';
+import { User, LoginResponse, AuthStatusResponse, ApiError, MusicAnalysisResponse } from '@/domains/authentication/types/auth.types';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -53,16 +53,15 @@ class ApiClient {
 
   private handleApiError(error: unknown): ApiError {
     if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response: { data?: { detail?: string; message?: string; code?: string }; status: number } };
+      const axiosError = error as { response: { data?: { detail?: string; message?: string }; status: number } };
       return {
         message: axiosError.response.data?.detail || axiosError.response.data?.message || 'An error occurred',
-        status: axiosError.response.status,
-        code: axiosError.response.data?.code
+        detail: axiosError.response.data?.detail || axiosError.response.data?.message || 'An error occurred'
       };
     } else if (error && typeof error === 'object' && 'request' in error) {
       return {
         message: 'Network error - please check your connection',
-        status: 0
+        detail: 'No response received from server'
       };
     } else {
       const errorMessage = error && typeof error === 'object' && 'message' in error
@@ -70,7 +69,7 @@ class ApiClient {
         : 'An unexpected error occurred';
       return {
         message: errorMessage,
-        status: 0
+        detail: errorMessage
       };
     }
   }
@@ -105,7 +104,17 @@ class ApiClient {
 
   // User endpoints
   async getCurrentUser(): Promise<User> {
-    const response: AxiosResponse<User> = await this.client.get('/auth/me');
+    const response: AxiosResponse<User> = await this.client.get('auth/me');
+    return response.data;
+  }
+
+  async getLatestAnalysis(): Promise<MusicAnalysisResponse | null> {
+    const response: AxiosResponse<MusicAnalysisResponse | null> = await this.client.get('/music/analysis/latest');
+    return response.data;
+  }
+
+  async analyzeMusic(): Promise<MusicAnalysisResponse> {
+    const response: AxiosResponse<MusicAnalysisResponse> = await this.client.post('/music/analyze');
     return response.data;
   }
 

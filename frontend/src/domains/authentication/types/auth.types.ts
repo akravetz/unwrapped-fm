@@ -16,19 +16,31 @@ export interface SpotifyToken {
   scope: string;
 }
 
+export interface MusicAnalysisResponse {
+  rating_text: string;
+  rating_description: string;
+  x_axis_pos: number;
+  y_axis_pos: number;
+  share_token: string;
+  analyzed_at: string;
+}
+
 export interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  latestAnalysis: MusicAnalysisResponse | null;
+  analysisLoading: boolean;
 }
 
 export interface AuthContextType extends AuthState {
   login: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   clearError: () => void;
+  refreshLatestAnalysis: () => Promise<void>;
 }
 
 export interface LoginResponse {
@@ -47,6 +59,5 @@ export interface TokenResponse {
 
 export interface ApiError {
   message: string;
-  status?: number;
-  code?: string;
+  detail: string;
 }

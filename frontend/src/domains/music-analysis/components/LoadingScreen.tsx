@@ -10,6 +10,8 @@ import {
   CardContent,
   Fade
 } from '@mui/material';
+import { useAuth } from '@/domains/authentication';
+import apiClient from '@/lib/backend/apiClient';
 
 const loadingMessages = [
   "Compiling a list of breakup songs you played ironically...",
@@ -26,28 +28,64 @@ interface LoadingScreenProps {
 }
 
 export function LoadingScreen({ onComplete }: LoadingScreenProps) {
+  const { refreshLatestAnalysis } = useAuth();
   const [visibleMessages, setVisibleMessages] = useState<number>(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [analysisStarted, setAnalysisStarted] = useState(false);
 
+  // Start analysis when component mounts
   useEffect(() => {
-    const timer = setInterval(() => {
-      setVisibleMessages(prev => {
-        if (prev < loadingMessages.length) {
-          return prev + 1;
-        } else {
-          // All messages shown, wait a bit then complete
-          setTimeout(() => {
-            setIsComplete(true);
-            onComplete?.();
-          }, 2000);
-          clearInterval(timer);
-          return prev;
-        }
-      });
-    }, 1500); // Show new message every 1.5 seconds
+    if (!analysisStarted) {
+      setAnalysisStarted(true);
+      startAnalysis();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisStarted]);
 
-    return () => clearInterval(timer);
-  }, [onComplete]);
+  const startAnalysis = async () => {
+    try {
+      // Start the analysis in the background
+      const analysisPromise = apiClient.analyzeMusic();
+
+      // Show loading messages while analysis runs
+      const messageTimer = setInterval(() => {
+        setVisibleMessages(prev => {
+          if (prev < loadingMessages.length) {
+            return prev + 1;
+          } else {
+            clearInterval(messageTimer);
+            return prev;
+          }
+        });
+      }, 1500); // Show new message every 1.5 seconds
+
+      // Wait for analysis to complete
+      await analysisPromise;
+
+      // Update the auth context with the new analysis
+      await refreshLatestAnalysis();
+
+      // Clear message timer if still running
+      clearInterval(messageTimer);
+
+      // Ensure all messages are shown
+      setVisibleMessages(loadingMessages.length);
+
+      // Wait a bit then complete
+      setTimeout(() => {
+        setIsComplete(true);
+        onComplete?.();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      // Still complete the loading screen even if analysis fails
+      setTimeout(() => {
+        setIsComplete(true);
+        onComplete?.();
+      }, 2000);
+    }
+  };
 
   return (
     <Container maxWidth="md">

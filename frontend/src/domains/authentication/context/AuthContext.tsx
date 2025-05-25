@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import { AuthState, AuthContextType, User, ApiError } from '../types/auth.types';
+import { AuthState, AuthContextType, User, ApiError, MusicAnalysisResponse } from '../types/auth.types';
 import apiClient from '@/lib/backend/apiClient';
 
 // Initial state
@@ -11,6 +11,8 @@ const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  latestAnalysis: null,
+  analysisLoading: false,
 };
 
 // Action types
@@ -20,7 +22,10 @@ type AuthAction =
   | { type: 'AUTH_FAILURE'; payload: string }
   | { type: 'LOGOUT' }
   | { type: 'CLEAR_ERROR' }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'ANALYSIS_LOADING'; payload: boolean }
+  | { type: 'ANALYSIS_SUCCESS'; payload: MusicAnalysisResponse | null }
+  | { type: 'ANALYSIS_FAILURE'; payload: string };
 
 // Reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -53,11 +58,19 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        latestAnalysis: null,
+        analysisLoading: false,
       };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+    case 'ANALYSIS_LOADING':
+      return { ...state, analysisLoading: action.payload };
+    case 'ANALYSIS_SUCCESS':
+      return { ...state, latestAnalysis: action.payload, analysisLoading: false };
+    case 'ANALYSIS_FAILURE':
+      return { ...state, analysisLoading: false, error: action.payload };
     default:
       return state;
   }
@@ -79,6 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Only run on client side to prevent hydration mismatch
     if (typeof window === 'undefined') return;
     checkAuthStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle URL callback parameters
@@ -105,7 +119,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchLatestAnalysis = async () => {
+    try {
+      dispatch({ type: 'ANALYSIS_LOADING', payload: true });
+      const analysis = await apiClient.getLatestAnalysis();
+      dispatch({ type: 'ANALYSIS_SUCCESS', payload: analysis });
+    } catch (error) {
+      console.error('Failed to fetch latest analysis:', error);
+      dispatch({ type: 'ANALYSIS_FAILURE', payload: 'Failed to fetch analysis' });
+    }
+  };
 
   const checkAuthStatus = async () => {
     try {
@@ -127,6 +153,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           type: 'AUTH_SUCCESS',
           payload: { user: response.user, token }
         });
+        // Fetch latest analysis after successful authentication
+        fetchLatestAnalysis();
       } else {
         apiClient.clearAuthToken();
         dispatch({ type: 'SET_LOADING', payload: false });
@@ -151,6 +179,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'AUTH_SUCCESS',
         payload: { user, token }
       });
+      // Fetch latest analysis after successful authentication
+      fetchLatestAnalysis();
     } catch (error) {
       console.error('Token callback failed:', error);
       const apiError = error as ApiError;
@@ -222,12 +252,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
+  const refreshLatestAnalysis = async () => {
+    try {
+      await fetchLatestAnalysis();
+    } catch (error) {
+      console.error('Failed to refresh latest analysis:', error);
+      dispatch({ type: 'ANALYSIS_FAILURE', payload: 'Failed to refresh analysis' });
+    }
+  };
+
   const contextValue: AuthContextType = {
     ...state,
     login,
     logout,
     refreshToken,
     clearError,
+    refreshLatestAnalysis,
   };
 
   return (
