@@ -1,0 +1,112 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Core Project Rules - Music Taste Judge
+
+## Critical Implementation Rules ⚠️
+
+### NEVER Edit Dependencies Directly
+- **ALWAYS use `uv add package-name`** for adding dependencies
+- **NEVER edit pyproject.toml directly** for dependencies
+- Example: `uv add "python-jose[cryptography]"` (note the quotes for extras)
+
+### Modern Python Typing (Phase 2 Established)
+- **Use `|` union syntax**: `str | None` instead of `Optional[str]`
+- **Modern imports**: `from collections.abc import AsyncGenerator` not `typing.AsyncGenerator`
+- **No deprecated imports**: Never import from `typing.Optional`, `typing.Dict`, etc.
+- **Modern datetime**: `from datetime import UTC` instead of `timezone.utc`
+- **Timezone-aware fields**: Use `datetime.now(UTC)` and `DateTime(timezone=True)` for database columns
+- **No deprecated datetime**: Never use `datetime.utcnow()` - always `datetime.now(UTC)`
+
+### Pydantic v2 Compliance
+- **Use `ConfigDict`**: `model_config = ConfigDict(env_file=".env")`
+- **NEVER use class-based Config**: Deprecated and causes warnings
+- **Modern field definitions**: Use Field() for complex validations
+
+### Exception Handling
+- **Always chain exceptions**: `raise HTTPException(...) from e`
+- **Never bare except**: Always specify exception types or use `from e`
+
+### Async Patterns
+- **Async everywhere**: Database operations, HTTP calls, file I/O
+- **Proper session management**: Use `Depends(get_session)` for database
+- **Context managers**: `async with httpx.AsyncClient() as client:`
+
+## Authentication Architecture ✅ IMPLEMENTED
+
+### JWT + Spotify OAuth Flow
+```python
+# 1. Generate auth URL
+auth_url = spotify_client.get_auth_url()
+
+# 2. Handle callback
+spotify_token = await spotify_client.exchange_code_for_token(code)
+spotify_user = await spotify_client.get_current_user(spotify_token.access_token)
+
+# 3. Create/update user
+user = await user_service.create_or_update_user_from_spotify(...)
+
+# 4. Generate JWT
+jwt_token = create_user_token(user.id)
+```
+
+### Database Patterns
+- **Service Layer**: Separate UserService for database operations
+- **Modern SQLModel**: Async with proper typing
+- **Token Storage**: Store Spotify tokens with expiration handling
+
+## Code Quality Standards
+
+### Testing
+- **Current coverage**: 45% - good baseline
+- **Test structure**: Keep tests focused and fast
+- **Async tests**: Use proper pytest-asyncio patterns
+
+### Linting & Formatting
+- **Always run**: `uv run ruff check . && uv run ruff format .`
+- **Fix automatically**: `uv run ruff check . --fix`
+- **Zero tolerance**: No linting errors in committed code
+
+## Development Workflow
+
+### Backend Commands
+```bash
+cd backend/
+uv run uvicorn src.musicjudge.main:app --reload  # Dev server
+uv run pytest                                     # Tests
+uv run ruff check . && uv run ruff format .      # Quality check
+```
+
+### Frontend Commands
+```bash
+cd frontend/
+npm run dev    # Dev server
+npm run build  # Production build
+```
+
+## Next Phase Preparation (Phase 3: Music Data)
+
+### Spotify API Integration
+- **Rate limiting**: Implement proper backoff strategies
+- **Data pagination**: Handle large music libraries efficiently
+- **Token refresh**: Automatic refresh of expired Spotify tokens
+- **Error handling**: Graceful degradation for API failures
+
+### Data Processing
+- **Async processing**: Use background tasks for heavy operations
+- **Caching strategy**: Cache frequently accessed music data
+- **Database design**: Efficient models for music data storage
+
+You have two modes of operation:
+
+1. Plan mode - You will work with the user to define a plan, you will gather all the information you need to make the changes but will not make any changes
+2. Act mode - You will make changes to the codebase based on the plan
+
+- You start in plan mode and will not move to act mode until the plan is approved by the user.
+- You will print `# Mode: PLAN` when in plan mode and `# Mode: ACT` when in act mode at the beginning of each response.
+- Unless the user explicity asks you to move to act mode, by typing `ACT` you will stay in plan mode.
+- You will move back to plan mode after every response and when the user types `PLAN`.
+- If the user asks you to take an action while in plan mode you will remind them that you are in plan mode and that they need to approve the plan first.
+- When in plan mode always output the full updated plan in every response.

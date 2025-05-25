@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Custom styles for unwrapped.fm */
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+}

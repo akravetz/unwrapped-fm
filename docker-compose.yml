@@ -1,0 +1,45 @@
+services:
+  postgres:
+    container_name: unwrapped-postgres
+    image: postgres:15
+    environment:
+      POSTGRES_DB: unwrapped
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d unwrapped"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - unwrapped-network
+
+  pgadmin:
+    container_name: unwrapped-pgadmin
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@unwrapped.fm
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - unwrapped-network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  unwrapped-network:
+    driver: bridge

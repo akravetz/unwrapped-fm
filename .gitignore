@@ -1,0 +1,17 @@
+.env
+.env.local
+.venv
+# Compiled output
+dist/
+build/
+wwwroot/
+backend/certs/
+
+# Dependencies
+node_modules/
+
+# IDE and OS files
+.vscode/
+*.log
+*.tsbuildinfo
+.idea
