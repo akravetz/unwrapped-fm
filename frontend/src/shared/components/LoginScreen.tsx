@@ -10,6 +10,7 @@ import {
   Stack
 } from '@mui/material'
 import { LoginButton } from '@/domains/authentication/components/LoginButton'
+import { COPY } from '@/lib/constants/copy'
 
 export function LoginScreen() {
   return (
@@ -27,12 +28,11 @@ export function LoginScreen() {
           <CardContent sx={{ p: 4 }}>
             <Stack spacing={3} alignItems="center" textAlign="center">
               <Typography variant="h3" component="h1" color="primary">
-                Unwrapped.fm
+                {COPY.APP_NAME}
               </Typography>
 
               <Typography variant="body1" color="text.secondary">
-                Discover your music listening patterns and get AI-powered insights
-                into your Spotify data.
+                {COPY.AUTH.TAGLINE}
               </Typography>
 
               <Box sx={{ width: '100%', mt: 3 }}>
@@ -40,8 +40,7 @@ export function LoginScreen() {
               </Box>
 
               <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                We&apos;ll redirect you to Spotify to securely connect your account.
-                No passwords required.
+                {COPY.AUTH.OAUTH_DISCLAIMER}
               </Typography>
             </Stack>
           </CardContent>

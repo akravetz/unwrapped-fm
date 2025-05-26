@@ -9,7 +9,7 @@ tasks:
     cmds:
       - task --list
 
-  # Database tasks
+  # === Database Tasks ===
   db-up:
     desc: Start PostgreSQL database
     cmds:
@@ -21,11 +21,6 @@ tasks:
     desc: Stop PostgreSQL database
     cmds:
       - docker compose down
-
-  db-logs:
-    desc: Show database logs
-    cmds:
-      - docker compose logs -f postgres
 
   db-shell:
     desc: Connect to database shell
@@ -41,7 +36,7 @@ tasks:
       - echo "Waiting for database to be ready..."
       - sleep 10
 
-  # Atlas migration tasks
+  # === Atlas Migration Tasks ===
   db:migrate:diff:
     desc: Generate a new migration
     dir: backend
@@ -60,180 +55,108 @@ tasks:
     cmds:
       - uv run python scripts/atlas_migrate.py status
 
-  db:migrate:validate:
-    desc: Validate migration files
-    dir: backend
+  # === Development Tasks ===
+  install:
+    desc: Install all dependencies
     cmds:
-      - uv run python scripts/atlas_migrate.py validate
-
-  # Development tasks
-  dev:
-    desc: Start development environment
-    deps: [db-up]
-    cmds:
-      - echo "Starting development environment..."
-      - echo "Database at localhost:5432"
-      - echo "PgAdmin at http://localhost:5050"
+      - task: backend:install
+      - task: frontend:install
 
   dev:backend:
     desc: Start backend development server
     dir: backend
     deps: [db-up]
     cmds:
-      - echo "Starting backend server..."
-      - echo "API at https://127.0.0.1:8443"
-      - echo "Docs at https://127.0.0.1:8443/docs"
-      - echo "Health at https://127.0.0.1:8443/health"
-      - echo ""
-      - echo "Note - Must run from backend/ directory due to Python path configuration"
-      - echo "Use - cd backend && uv run uvicorn src.unwrapped.main:app --reload"
+      - echo "Starting backend server at https://127.0.0.1:8443"
+      - echo "API docs at https://127.0.0.1:8443/docs"
+      - uv run uvicorn src.unwrapped.main:app --reload --host 0.0.0.0 --port 8443 --ssl-keyfile certs/localhost.key --ssl-certfile certs/localhost.crt
 
   dev:frontend:
     desc: Start frontend development server
     dir: frontend
     cmds:
-      - echo "Starting frontend server..."
+      - echo "Starting frontend server at http://localhost:3000"
       - npm run dev
 
-  # Testing tasks
-  test:
-    desc: Run all tests
-    dir: backend
-    cmds:
-      - uv run pytest
-
-  test:watch:
-    desc: Run tests in watch mode
-    dir: backend
-    cmds:
-      - uv run pytest-watch
-
-  test:coverage:
-    desc: Run tests with coverage report
-    dir: backend
-    cmds:
-      - uv run pytest --cov=src --cov-report=html --cov-report=term
-
-  # Code quality tasks
-  lint:
-    desc: Run linting
-    dir: backend
-    cmds:
-      - uv run ruff check .
-
-  lint:fix:
-    desc: Run linting with auto-fix
-    dir: backend
-    cmds:
-      - uv run ruff check . --fix
-
-  format:
-    desc: Format code
-    dir: backend
-    cmds:
-      - uv run ruff format .
-
-  quality:
-    desc: Run all code quality checks
-    dir: backend
-    cmds:
-      - uv run ruff check . --fix
-      - uv run ruff format .
-      - uv run pytest
-
-  install:
-    desc: Install all dependencies
-    cmds:
-      - task: backend-install
-      - task: frontend-install
-
-  # pgAdmin
-  pgadmin-up:
-    desc: Start pgAdmin
-    deps: [db-up]
-    cmds:
-      - docker compose up -d pgadmin
-      - echo "pgAdmin available at http://localhost:5050"
-      # - echo 'Email: admin@unwrapped.fm, Password: admin'
-
-  # Backend tasks
-  backend-install:
+  # === Backend Tasks ===
+  backend:install:
     desc: Install backend dependencies
     dir: backend
     cmds:
       - uv sync
 
-  backend-start:
-    desc: Start backend development server (HTTPS)
+  backend:test:
+    desc: Run backend tests with coverage
     dir: backend
-    deps: [db-up]
     cmds:
-      - uv run uvicorn src.unwrapped.main:app --reload --host 0.0.0.0 --port 8443 --ssl-keyfile certs/localhost.key --ssl-certfile certs/localhost.crt
+      - uv run pytest --cov=src --cov-report=html --cov-report=term
 
-  backend-test:
-    desc: Run backend tests
+  backend:lint:
+    desc: Lint and format backend code
     dir: backend
     cmds:
-      - uv run pytest -v
-
-  backend-lint:
-    desc: Lint backend code
-    dir: backend
-    cmds:
-      - uv run ruff check .
-      - uv run ruff format . --check
-
-  backend-format:
-    desc: Format backend code
-    dir: backend
-    cmds:
-      - uv run ruff format .
       - uv run ruff check . --fix
+      - uv run ruff format .
 
-  # Frontend tasks
-  frontend-install:
+  # === Frontend Tasks ===
+  frontend:install:
     desc: Install frontend dependencies
     dir: frontend
     cmds:
       - npm install
 
-  frontend-start:
-    desc: Start frontend development server
+  frontend:test:
+    desc: Run frontend unit tests
     dir: frontend
     cmds:
-      - npm run dev
+      - npm run test
 
-  frontend-build:
+  frontend:test:e2e:
+    desc: Run frontend E2E tests
+    dir: frontend
+    cmds:
+      - npm run test:e2e
+
+  frontend:build:
     desc: Build frontend for production
     dir: frontend
     cmds:
       - npm run build
 
-  frontend-lint:
+  frontend:lint:
     desc: Lint frontend code
     dir: frontend
     cmds:
       - npm run lint
 
-  # Quality assurance
-  test-all:
-    desc: Run all tests
+  # === Combined Tasks ===
+  test:all:
+    desc: Run all tests (backend + frontend)
     cmds:
-      - task: backend-test
+      - task: backend:test
+      - task: frontend:test
 
-  lint-all:
-    desc: Lint all code
+  lint:all:
+    desc: Lint all code (backend + frontend)
     cmds:
-      - task: backend-lint
-      - task: frontend-lint
+      - task: backend:lint
+      - task: frontend:lint
 
-  format-all:
-    desc: Format all code
+  qa:
+    desc: Quality assurance - lint and test everything
     cmds:
-      - task: backend-format
+      - task: lint:all
+      - task: test:all
+      - task: frontend:build
 
-  # API Client Generation
-  api:generate-spec:
+  # === API Client Generation ===
+  api:generate:
+    desc: Generate OpenAPI spec and TypeScript client
+    cmds:
+      - task: api:spec
+      - task: api:client
+
+  api:spec:
     desc: Generate OpenAPI specification from FastAPI
     dir: backend
     cmds:
@@ -247,22 +170,16 @@ tasks:
         print('OpenAPI spec generated at frontend/src/api/openapi.json')
         "
 
-  api:generate-client:
+  api:client:
     desc: Generate TypeScript API client from OpenAPI spec
     dir: frontend
-    deps: [api:generate-spec]
+    deps: [api:spec]
     cmds:
       - mkdir -p src/api/generated
       - npx openapi-typescript src/api/openapi.json -o src/api/generated/types.ts
       - echo "TypeScript types generated at frontend/src/api/generated/types.ts"
 
-  api:generate:
-    desc: Generate OpenAPI spec and TypeScript client
-    cmds:
-      - task: api:generate-spec
-      - task: api:generate-client
-
-  # Cleanup
+  # === Cleanup ===
   clean:
     desc: Clean up development environment
     cmds:

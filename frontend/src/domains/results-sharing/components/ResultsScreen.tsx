@@ -12,15 +12,14 @@ import {
   IconButton,
   Snackbar,
   Alert,
-  Divider,
-  Chip
+  Divider
 } from '@mui/material'
 import ShareIcon from '@mui/icons-material/Share'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import { AnalysisResult } from '@/domains/music-analysis/types/music.types'
+import { MusicAnalysisResponse } from '@/domains/music-analysis/types/music.types'
 
 interface ResultsScreenProps {
-  result: AnalysisResult
+  result: MusicAnalysisResponse
   onShare?: (shareUrl: string) => void
 }
 
@@ -43,15 +42,6 @@ export function ResultsScreen({ result, onShare }: ResultsScreenProps) {
     }
   }
 
-  const formatTimeRange = (timeRange: string) => {
-    switch (timeRange) {
-      case 'short_term': return 'Last 4 weeks'
-      case 'medium_term': return 'Last 6 months'
-      case 'long_term': return 'All time'
-      default: return timeRange
-    }
-  }
-
   return (
     <Container maxWidth="md">
       <Box sx={{ py: 4 }}>
@@ -64,11 +54,9 @@ export function ResultsScreen({ result, onShare }: ResultsScreenProps) {
                     <Typography variant="h4" component="h1" gutterBottom>
                       Your Music Analysis
                     </Typography>
-                    <Chip
-                      label={formatTimeRange(result.time_range)}
-                      variant="outlined"
-                      size="small"
-                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Analysis from {new Date(result.analyzed_at).toLocaleDateString()}
+                    </Typography>
                   </Box>
 
                   {result.share_token && (
@@ -105,53 +93,23 @@ export function ResultsScreen({ result, onShare }: ResultsScreenProps) {
 
                 <Box>
                   <Typography variant="h6" gutterBottom>
-                    AI Insights
+                    Music Taste Analysis
                   </Typography>
-                  <Stack spacing={2}>
-                    {result.insights?.map((insight, index) => (
-                      <Card key={index} variant="outlined" sx={{ bgcolor: 'background.default' }}>
-                        <CardContent sx={{ p: 3 }}>
-                          <Typography variant="body1">
-                            {insight}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    )) || (
-                      <Typography variant="body2" color="text.secondary">
-                        No insights available for this analysis.
+                  <Card variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Typography variant="h5" gutterBottom>
+                        {result.rating_text}
                       </Typography>
-                    )}
-                  </Stack>
-                </Box>
-
-                {result.analysis_data && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      Analysis Data
-                    </Typography>
-                    <Card variant="outlined" sx={{ bgcolor: 'background.default' }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Typography
-                          variant="body2"
-                          component="pre"
-                          sx={{
-                            fontFamily: 'monospace',
-                            whiteSpace: 'pre-wrap',
-                            overflow: 'auto',
-                            maxHeight: 400
-                          }}
-                        >
-                          {JSON.stringify(result.analysis_data, null, 2)}
+                      <Typography variant="body1">
+                        {result.rating_description}
+                      </Typography>
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Position: ({result.x_axis_pos.toFixed(2)}, {result.y_axis_pos.toFixed(2)})
                         </Typography>
-                      </CardContent>
-                    </Card>
-                  </Box>
-                )}
-
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Analysis completed on {new Date(result.created_at).toLocaleDateString()}
-                  </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Box>
               </Stack>
             </CardContent>

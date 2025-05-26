@@ -3,6 +3,7 @@
 import React from 'react'
 import { Button, CircularProgress } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
+import { COPY } from '@/lib/constants/copy'
 
 interface LoginButtonProps {
   variant?: 'contained' | 'outlined' | 'text'
@@ -26,7 +27,7 @@ export function LoginButton({
       disabled={isLoading}
       startIcon={isLoading ? <CircularProgress size={16} /> : null}
     >
-      {isLoading ? 'Connecting...' : 'Connect with Spotify'}
+      {isLoading ? COPY.AUTH.LOGIN_BUTTON_CONNECTING : COPY.AUTH.LOGIN_BUTTON}
     </Button>
   )
 }
