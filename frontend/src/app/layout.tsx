@@ -5,6 +5,7 @@ import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { ThemeRegistry } from "@/domains/ui-foundation/theme/ThemeRegistry";
 import { AuthProvider } from "@/domains/authentication";
+import { ErrorBoundary } from "@/shared/components";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -42,9 +43,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <AppRouterCacheProvider>
           <ThemeRegistry>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            <ErrorBoundary>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </ErrorBoundary>
           </ThemeRegistry>
         </AppRouterCacheProvider>
       </body>

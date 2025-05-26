@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { AuthState, AuthContextType, User, ApiError, MusicAnalysisResponse } from '../types/auth.types';
-import apiClient from '@/lib/backend/apiClient';
+import { apiClient } from '@/lib/api/apiClient';
+import { TokenService } from '@/lib/tokens/tokenService';
 
 // Initial state
 const initialState: AuthState = {
@@ -125,7 +126,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const fetchLatestAnalysis = async () => {
     try {
       dispatch({ type: 'ANALYSIS_LOADING', payload: true });
-      const analysis = await apiClient.getLatestAnalysis();
+      const token = TokenService.getToken();
+      if (!token) {
+        dispatch({ type: 'ANALYSIS_FAILURE', payload: 'No authentication token' });
+        return;
+      }
+      const analysis = await apiClient.getLatestAnalysis(token);
       dispatch({ type: 'ANALYSIS_SUCCESS', payload: analysis });
     } catch (error) {
       console.error('Failed to fetch latest analysis:', error);
@@ -141,13 +147,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      const token = apiClient.getAuthToken();
+      const token = TokenService.getToken();
       if (!token) {
         dispatch({ type: 'SET_LOADING', payload: false });
         return;
       }
 
-      const response = await apiClient.getAuthStatus();
+      const response = await apiClient.getAuthStatus(token);
       if (response.authenticated && response.user) {
         dispatch({
           type: 'AUTH_SUCCESS',
@@ -156,12 +162,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Fetch latest analysis after successful authentication
         fetchLatestAnalysis();
       } else {
-        apiClient.clearAuthToken();
+        TokenService.clearToken();
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     } catch (error) {
       console.error('Auth status check failed:', error);
-      apiClient.clearAuthToken();
+      TokenService.clearToken();
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
@@ -171,10 +177,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'AUTH_START' });
 
       // Store the token
-      apiClient.setAuthToken(token);
+      TokenService.setToken(token);
 
       // Get user info with the token
-      const user = await apiClient.getCurrentUser();
+      const user = await apiClient.getCurrentUser(token);
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: { user, token }
@@ -185,7 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Token callback failed:', error);
       const apiError = error as ApiError;
       dispatch({ type: 'AUTH_FAILURE', payload: apiError.message });
-      apiClient.clearAuthToken();
+      TokenService.clearToken();
     }
   };
 
@@ -194,7 +200,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'AUTH_START' });
       const response = await apiClient.handleAuthCallback(code, state);
 
-      apiClient.setAuthToken(response.access_token);
+      TokenService.setToken(response.access_token);
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: { user: response.user, token: response.access_token }
@@ -222,22 +228,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
-      await apiClient.logout();
+      const token = TokenService.getToken();
+      if (token) {
+        await apiClient.logout(token);
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      apiClient.clearAuthToken();
+      TokenService.clearToken();
       dispatch({ type: 'LOGOUT' });
     }
   };
 
   const refreshToken = async () => {
     try {
-      const response = await apiClient.refreshToken();
-      apiClient.setAuthToken(response.access_token);
+      const currentToken = TokenService.getToken();
+      if (!currentToken) {
+        throw new Error('No current token to refresh');
+      }
+      const response = await apiClient.refreshToken(currentToken);
+      TokenService.setToken(response.access_token);
 
       // Get updated user info
-      const user = await apiClient.getCurrentUser();
+      const user = await apiClient.getCurrentUser(response.access_token);
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: { user, token: response.access_token }
