@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -35,37 +35,9 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   );
   const [analysisStarted, setAnalysisStarted] = useState(false);
 
-  // Start sequential message display
-  useEffect(() => {
-    const showNextMessage = (index: number) => {
-      if (index < loadingMessages.length) {
-        setTimeout(() => {
-          setMessageStates(prev => {
-            const newStates = [...prev];
-            newStates[index] = true;
-            return newStates;
-          });
-          showNextMessage(index + 1);
-        }, index === 0 ? 500 : 1500); // First message shows after 500ms, others after 1.5s
-      }
-    };
-
-    showNextMessage(0);
-  }, []);
-
-  // Start analysis when component mounts
-  useEffect(() => {
-    if (!analysisStarted) {
-      setAnalysisStarted(true);
-      startAnalysis();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisStarted]);
-
-  const startAnalysis = async () => {
+  const startAnalysis = useCallback(async () => {
     if (!apiClient) {
       console.error('API client not available');
-      onComplete?.();
       return;
     }
 
@@ -84,10 +56,96 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
     } catch (error) {
       console.error('Analysis failed:', error);
-      // Still navigate to results on error
+
+      // Log more detailed error information
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          console.error('Error message:', (error as { message: unknown }).message);
+        }
+        if ('detail' in error) {
+          console.error('Error detail:', (error as { detail: unknown }).detail);
+        }
+        if ('response' in error) {
+          console.error('Response error:', (error as { response: unknown }).response);
+        }
+      }
+
+      // Still navigate to results on error (graceful degradation)
       onComplete?.();
     }
-  };
+  }, [apiClient, refreshLatestAnalysis, onComplete]);
+
+  // Start sequential message display
+  useEffect(() => {
+    const showNextMessage = (index: number) => {
+      if (index < loadingMessages.length) {
+        setTimeout(() => {
+          setMessageStates(prev => {
+            const newStates = [...prev];
+            newStates[index] = true;
+            return newStates;
+          });
+          showNextMessage(index + 1);
+        }, index === 0 ? 500 : 1500); // First message shows after 500ms, others after 1.5s
+      }
+    };
+
+    showNextMessage(0);
+  }, []);
+
+  // Start analysis when apiClient becomes available
+  useEffect(() => {
+    if (apiClient && !analysisStarted) {
+      setAnalysisStarted(true);
+      startAnalysis();
+    }
+  }, [apiClient, analysisStarted, startAnalysis]);
+
+  // Show initial loading state if API client is not available yet
+  if (!apiClient) {
+    return (
+      <Container maxWidth="md">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="100vh"
+          py={4}
+        >
+          <Card
+            sx={{
+              width: '100%',
+              maxWidth: 600,
+              p: 4,
+              textAlign: 'center'
+            }}
+          >
+            <CardContent>
+              <Stack spacing={4} alignItems="center">
+                <Typography
+                  variant="h4"
+                  component="h1"
+                  sx={{
+                    background: 'linear-gradient(45deg, #1DB954 30%, #1ED760 90%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    fontWeight: 700,
+                  }}
+                >
+                  unwrapped.fm
+                </Typography>
+
+                <Typography variant="body1" color="text.primary">
+                  Initializing analysis...
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md">

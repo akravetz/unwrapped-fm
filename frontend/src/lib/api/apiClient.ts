@@ -115,7 +115,18 @@ export class ApiClient {
   }
 
   async analyzeMusic(token: string): Promise<MusicAnalysisResponse> {
-    return this.makeAuthenticatedRequest<MusicAnalysisResponse>('POST', '/music/analyze', token);
+    // Use longer timeout for analysis since it involves Spotify API calls + AI processing
+    const config = {
+      method: 'post',
+      url: '/music/analyze',
+      timeout: 60000, // 60 seconds for analysis
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+
+    const response: AxiosResponse<MusicAnalysisResponse> = await this.client.request(config);
+    return response.data;
   }
 
   // Health check (no auth required)
