@@ -12,11 +12,12 @@
 - **Architecture**: Domain-driven design with functional cohesion
 
 ### Frontend
-- **Framework**: React with TypeScript
-- **Build Tool**: Vite (fast development and building)
-- **Styling**: Tailwind CSS (rapid UI development)
-- **Routing**: React Router
-- **Testing**: Vitest + React Testing Library
+- **Framework**: Next.js 15.3 with App Router + React 19
+- **UI Library**: Material-UI 7 with custom Spotify-inspired theme
+- **Styling**: Tailwind CSS v4 + Material-UI integration
+- **Type Safety**: TypeScript with strict configuration
+- **Testing**: Vitest (unit) + Playwright (e2e) + React Testing Library
+- **Architecture**: Domain-driven design with SSR-safe patterns
 
 ### External APIs
 - **Spotify Web API**: Music data retrieval, user authentication
@@ -531,3 +532,240 @@ task db:migrate:apply                              # Apply migration
 # - Safe rollback capabilities
 # - Team collaboration on schema changes
 ```
+
+## Frontend Architecture Patterns ✅ NEW!
+
+### SSR-Safe React Patterns (CRITICAL)
+```typescript
+// ❌ WRONG: Direct browser API usage causes SSR mismatch
+function BadComponent() {
+  const [user, setUser] = useState(localStorage.getItem('user'))
+  // Causes hydration mismatch - localStorage not available during SSR
+}
+
+// ✅ CORRECT: SSR-safe pattern with client-side detection
+function GoodComponent() {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!isClient) return null // SSR-safe
+
+  // Now safe to use browser APIs
+  const token = localStorage.getItem('token')
+}
+
+// ✅ CORRECT: Memoized API client to prevent re-render loops
+function useApiClient(): AuthenticatedApiClient | null {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  const apiClient = useMemo(() => {
+    if (!isClient) return null
+    return new AuthenticatedApiClient()
+  }, [isClient]) // Only recreate when isClient changes
+
+  return apiClient
+}
+```
+
+### Context Anti-Patterns & Solutions ✅
+```typescript
+// ❌ ANTI-PATTERN: Infinite re-render caused by unstable dependencies
+function BadAuthProvider({ children }: AuthProviderProps) {
+  const apiClient = useApiClient() // Creates new instance every render!
+
+  const refreshUser = useCallback(async () => {
+    // Function recreated every render due to unstable apiClient
+    await apiClient?.getCurrentUser()
+  }, [apiClient]) // apiClient changes every render = infinite loop
+
+  useEffect(() => {
+    refreshUser() // Triggers on every apiClient change = infinite re-renders
+  }, [refreshUser])
+}
+
+// ✅ SOLUTION: Stable references with proper memoization
+function GoodAuthProvider({ children }: AuthProviderProps) {
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const apiClient = useApiClient() // Now memoized in hook
+
+  const refreshUser = useCallback(async () => {
+    if (!apiClient) return
+    await apiClient.getCurrentUser()
+  }, [apiClient]) // Now stable because apiClient is memoized
+
+  const login = useCallback(async () => {
+    // All context functions should be memoized
+  }, [apiClient])
+
+  // Prevent multiple initialization calls
+  useEffect(() => {
+    if (apiClient && !hasInitialized) {
+      setHasInitialized(true)
+      refreshUser()
+    }
+  }, [apiClient, hasInitialized, refreshUser])
+
+  // Memoize context value to prevent provider re-renders
+  const value = useMemo(() => ({
+    ...state,
+    login,
+    logout,
+    refreshUser,
+  }), [state, login, logout, refreshUser])
+}
+```
+
+### Domain-Driven Frontend Architecture ✅
+```typescript
+// Frontend domain structure mirrors backend patterns
+src/
+├── domains/
+│   ├── authentication/     # Auth flows, user context, API client hooks
+│   │   ├── components/     # LoginButton, AuthGuard
+│   │   ├── context/        # AuthContext with SSR-safe patterns
+│   │   ├── hooks/          # useApiClient, useAuth
+│   │   └── types/          # User, AuthState interfaces
+│   ├── music-analysis/     # Music data fetching and analysis UI
+│   │   ├── components/     # LoadingScreen, AnalysisResults
+│   │   ├── hooks/          # useAnalysisStatus, useMusicData
+│   │   └── types/          # Track, Artist, AnalysisResult
+│   ├── results-sharing/    # Share analysis results
+│   │   ├── components/     # ShareDialog, ResultsScreen
+│   │   └── hooks/          # useShareLink
+│   └── ui-foundation/      # Shared components, theme, utilities
+│       ├── theme/          # Material-UI theme configuration
+│       └── components/     # ErrorBoundary, LoadingSpinner
+├── lib/                    # Core utilities
+│   ├── api/               # API client with proper error handling
+│   └── tokens/            # Token management with SSR safety
+├── shared/                 # Cross-domain components and hooks
+│   ├── components/        # AppRouter, ErrorBoundary
+│   └── hooks/             # useAppNavigation
+└── test/                  # Test utilities and configurations
+    ├── unit/              # Component tests with proper mocking
+    └── e2e/               # End-to-end user flows
+```
+
+### Frontend Testing Best Practices ✅
+```typescript
+// ✅ CORRECT: Proper context mocking in tests
+vi.mock('@/domains/authentication/context/AuthContext')
+const mockUseAuth = vi.mocked(useAuth)
+
+describe('LoginButton', () => {
+  it('renders correctly with mocked auth state', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    })
+
+    render(<LoginButton />)
+    expect(screen.getByRole('button')).toBeInTheDocument()
+  })
+})
+
+// ✅ E2E tests for critical user flows
+test('authentication flow works end-to-end', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: /connect with spotify/i })).toBeVisible()
+  // Test actual user interaction, not implementation details
+})
+```
+
+### Material-UI + Next.js Integration ✅
+```typescript
+// ✅ CORRECT: Proper MUI setup for Next.js App Router
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter'
+import { ThemeProvider } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
+
+export function ThemeRegistry({ children }: ThemeRegistryProps) {
+  return (
+    <AppRouterCacheProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
+    </AppRouterCacheProvider>
+  )
+}
+
+// ✅ Custom theme with Spotify branding
+export const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#1DB954', // Spotify green
+    },
+    background: {
+      default: '#121212',
+      paper: '#181818',
+    },
+  },
+  // Typography, components, etc.
+})
+```
+
+### Frontend Performance Patterns ✅
+```typescript
+// ✅ Lazy loading with proper SSR handling
+const DashboardContent = lazy(() => import('./DashboardContent'))
+
+function Dashboard() {
+  return (
+    <Suspense fallback={<LoadingScreen message="Loading dashboard..." />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+// ✅ Optimized re-rendering with memo and proper dependencies
+const ExpensiveComponent = memo(({ data, onUpdate }: Props) => {
+  const processedData = useMemo(() => {
+    return expensiveCalculation(data)
+  }, [data]) // Only recalculate when data changes
+
+  const handleUpdate = useCallback((newData) => {
+    onUpdate(newData)
+  }, [onUpdate]) // Stable callback reference
+
+  return <div>{/* Component content */}</div>
+})
+```
+
+### Critical Frontend Lessons Learned ✅
+
+1. **SSR Safety is Non-Negotiable**
+   - All browser API usage must be wrapped in client-side checks
+   - Use `useEffect` + `useState` pattern for client detection
+   - Never use `typeof window !== 'undefined'` - use proper SSR patterns
+
+2. **Context Re-render Prevention**
+   - Memoize ALL hook returns that create new objects/functions
+   - Use `useCallback` for all context functions
+   - Use `useMemo` for context values
+   - Add initialization guards to prevent multiple effect triggers
+
+3. **Domain Architecture Benefits**
+   - Clear separation of concerns
+   - Easy to test individual domains
+   - Scalable as features grow
+   - Type safety across domain boundaries
+
+4. **Testing Strategy**
+   - Unit tests for component logic with proper mocking
+   - E2E tests for critical user flows
+   - Integration tests for context providers
+   - Visual regression tests for UI components

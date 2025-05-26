@@ -5,8 +5,9 @@
 ### High-Level Architecture
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React SPA     │◄──►│   FastAPI       │◄──►│   PostgreSQL    │
-│   (Frontend)    │    │   (Backend)     │    │   (Database)    │
+│   Next.js 15    │◄──►│   FastAPI       │◄──►│   PostgreSQL    │
+│   + React 19    │    │   (Backend)     │    │   (Database)    │
+│   + Material-UI │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │
          │                       │
@@ -602,25 +603,238 @@ tests/
     └── test_validators.py
 ```
 
-### Frontend Patterns (Ready for Enhancement)
+### Frontend Patterns ✅ IMPLEMENTED
 
-#### Context API for State Management
+#### SSR-Safe Context Patterns ✅
 ```typescript
-// Authentication context
-export const AuthContext = createContext<AuthContextType | null>(null);
+// ✅ IMPLEMENTED: SSR-safe authentication context
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [state, dispatch] = useReducer(authReducer, initialState)
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const apiClient = useApiClient() // Memoized to prevent re-render loops
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const refreshUser = useCallback(async () => {
+    if (!apiClient) return
+    // SSR-safe user refresh logic
+  }, [apiClient])
 
-  // OAuth flow management
-  const loginWithSpotify = async () => { /* ... */ };
+  const login = useCallback(async () => {
+    if (!apiClient) return
+    const { authorization_url } = await apiClient.getSpotifyAuthUrl()
+    window.location.href = authorization_url
+  }, [apiClient])
 
+  // Prevent infinite re-renders with initialization guard
+  useEffect(() => {
+    if (apiClient && !hasInitialized) {
+      setHasInitialized(true)
+      refreshUser()
+    }
+  }, [apiClient, hasInitialized, refreshUser])
+
+  // Memoize context value to prevent provider re-renders
+  const value = useMemo(() => ({
+    ...state,
+    login,
+    logout,
+    refreshUser,
+  }), [state, login, logout, refreshUser])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+```
+
+#### SSR-Safe Hook Patterns ✅
+```typescript
+// ✅ IMPLEMENTED: Memoized API client prevents infinite re-renders
+export function useApiClient(): AuthenticatedApiClient | null {
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  const apiClient = useMemo(() => {
+    if (!isClient) return null
+    return new AuthenticatedApiClient()
+  }, [isClient]) // Only recreate when isClient changes
+
+  return apiClient
+}
+
+// ✅ IMPLEMENTED: SSR-safe navigation without useSearchParams
+export function useAppNavigation() {
+  const router = useRouter()
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  const handleAuthCallback = useCallback(async () => {
+    if (!apiClient || !isClient) return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const state = urlParams.get('state')
+    // Handle OAuth callback without SSR mismatch
+  }, [apiClient, isClient])
+
+  return { handleAuthCallback, /* other navigation methods */ }
+}
+```
+
+#### Material-UI + Next.js Integration ✅
+```typescript
+// ✅ IMPLEMENTED: Proper MUI setup for Next.js App Router
+export function ThemeRegistry({ children }: ThemeRegistryProps) {
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loginWithSpotify }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    <AppRouterCacheProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </ThemeProvider>
+    </AppRouterCacheProvider>
+  )
+}
+
+// ✅ IMPLEMENTED: Custom Spotify-inspired theme
+export const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#1DB954', // Spotify green
+    },
+    background: {
+      default: '#121212',
+      paper: '#181818',
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 24,
+          textTransform: 'none',
+        },
+      },
+    },
+  },
+})
+```
+
+#### Domain-Driven Frontend Architecture ✅
+```typescript
+// ✅ IMPLEMENTED: Frontend domain structure
+src/
+├── domains/
+│   ├── authentication/     # Complete auth implementation
+│   │   ├── components/     # LoginButton with loading states
+│   │   ├── context/        # AuthContext with SSR safety
+│   │   ├── hooks/          # useApiClient with memoization
+│   │   └── types/          # Complete TypeScript definitions
+│   ├── music-analysis/     # Analysis UI components
+│   │   ├── components/     # LoadingScreen with progress
+│   │   └── types/          # Music data type definitions
+│   ├── results-sharing/    # Share functionality
+│   │   └── components/     # ResultsScreen with sharing
+│   └── ui-foundation/      # Theme and design system
+│       ├── theme/          # Complete Material-UI setup
+│       └── components/     # Reusable UI components
+├── lib/                    # Core utilities
+│   ├── api/               # Type-safe API client
+│   └── tokens/            # SSR-safe token management
+├── shared/                 # Cross-domain functionality
+│   ├── components/        # ErrorBoundary, AppRouter
+│   └── hooks/             # Navigation and common hooks
+└── test/                  # Complete testing setup
+    ├── unit/              # Vitest + Testing Library
+    └── e2e/               # Playwright end-to-end tests
+```
+
+#### Frontend Testing Patterns ✅
+```typescript
+// ✅ IMPLEMENTED: Proper component testing with mocking
+vi.mock('@/domains/authentication/context/AuthContext')
+const mockUseAuth = vi.mocked(useAuth)
+
+describe('LoginButton', () => {
+  it('renders correctly with mocked auth state', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+    })
+
+    render(<LoginButton />)
+    expect(screen.getByRole('button')).toBeInTheDocument()
+  })
+})
+
+// ✅ IMPLEMENTED: E2E testing with Playwright
+test('authentication flow shows login screen', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /unwrapped\.fm/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /connect with spotify/i })).toBeVisible()
+})
+```
+
+#### Critical Frontend Anti-Patterns & Solutions ✅
+```typescript
+// ❌ ANTI-PATTERN: Infinite re-render from unstable dependencies
+function BadProvider() {
+  const apiClient = useApiClient() // Creates new instance every render!
+
+  const refreshUser = useCallback(async () => {
+    await apiClient?.getCurrentUser()
+  }, [apiClient]) // apiClient changes = function recreated = infinite loop
+
+  useEffect(() => {
+    refreshUser() // Triggers every time refreshUser changes
+  }, [refreshUser])
+}
+
+// ✅ SOLUTION: Memoization + initialization guards
+function GoodProvider() {
+  const [hasInitialized, setHasInitialized] = useState(false)
+  const apiClient = useApiClient() // Now properly memoized
+
+  const refreshUser = useCallback(async () => {
+    if (!apiClient) return
+    await apiClient.getCurrentUser()
+  }, [apiClient]) // Stable because apiClient is memoized
+
+  useEffect(() => {
+    if (apiClient && !hasInitialized) {
+      setHasInitialized(true) // Prevent multiple calls
+      refreshUser()
+    }
+  }, [apiClient, hasInitialized, refreshUser])
+}
+
+// ❌ ANTI-PATTERN: SSR mismatch with direct browser API usage
+function BadComponent() {
+  const [token, setToken] = useState(localStorage.getItem('token'))
+  // Causes hydration mismatch - localStorage not available during SSR
+}
+
+// ✅ SOLUTION: Client-side detection pattern
+function GoodComponent() {
+  const [isClient, setIsClient] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    setIsClient(true)
+    if (typeof window !== 'undefined') {
+      setToken(localStorage.getItem('token'))
+    }
+  }, [])
+
+  if (!isClient) return <div>Loading...</div> // SSR-safe fallback
 }
 ```
 
