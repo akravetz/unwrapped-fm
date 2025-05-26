@@ -232,6 +232,36 @@ tasks:
     cmds:
       - task: backend-format
 
+  # API Client Generation
+  api:generate-spec:
+    desc: Generate OpenAPI specification from FastAPI
+    dir: backend
+    cmds:
+      - mkdir -p ../frontend/src/api
+      - |
+        uv run python -c "
+        import json
+        from src.unwrapped.main import app
+        with open('../frontend/src/api/openapi.json', 'w') as f:
+            json.dump(app.openapi(), f, indent=2)
+        print('OpenAPI spec generated at frontend/src/api/openapi.json')
+        "
+
+  api:generate-client:
+    desc: Generate TypeScript API client from OpenAPI spec
+    dir: frontend
+    deps: [api:generate-spec]
+    cmds:
+      - mkdir -p src/api/generated
+      - npx openapi-typescript src/api/openapi.json -o src/api/generated/types.ts
+      - echo "TypeScript types generated at frontend/src/api/generated/types.ts"
+
+  api:generate:
+    desc: Generate OpenAPI spec and TypeScript client
+    cmds:
+      - task: api:generate-spec
+      - task: api:generate-client
+
   # Cleanup
   clean:
     desc: Clean up development environment
