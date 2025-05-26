@@ -13,6 +13,20 @@ Database (PostgreSQL)
 
 ### Core Design Patterns
 
+#### 0. **SSR-First Architecture (MANDATORY)**
+```
+NEVER use typeof window !== 'undefined' checks
+ALWAYS separate HTTP clients from browser APIs
+ALWAYS use SSR-safe hooks for API access
+ALWAYS return null during SSR, handle gracefully in components
+```
+
+**Key Principles:**
+- **Separation of Concerns**: HTTP operations vs browser API access
+- **Explicit Dependencies**: Tokens passed as parameters, not hidden in interceptors
+- **SSR Safety**: Hooks return null during SSR, components handle gracefully
+- **Type Safety**: Clear interfaces and explicit error handling
+
 #### 1. **Three-Modal User Flow**
 ```
 LoginModal → LoadingModal → ResultsModal
@@ -118,6 +132,63 @@ async def analyze(current_user: User = Depends(get_current_user)):
 ```
 
 ## Frontend Patterns
+
+### SSR-Compatible Architecture (CRITICAL)
+**ALWAYS use SSR-safe patterns for Next.js compatibility**
+
+#### API Client Architecture
+```typescript
+// ✅ CORRECT: Clean separation of concerns
+src/lib/
+├── api/apiClient.ts          # Pure HTTP client (no browser APIs)
+├── tokens/tokenService.ts    # Browser API management only
+└── hooks/useApiClient.ts     # SSR-safe hook combining both
+
+// ❌ NEVER: Direct browser API access in HTTP clients
+class ApiClient {
+  private getToken() {
+    if (typeof window === 'undefined') return null; // ANTI-PATTERN
+  }
+}
+```
+
+#### SSR-Safe Hook Pattern
+```typescript
+// ✅ REQUIRED PATTERN for all API access
+export function useApiClient(): AuthenticatedApiClient | null {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true); // Only runs on client
+  }, []);
+
+  if (!isClient) {
+    return null; // SSR-safe: returns null during server rendering
+  }
+
+  return {
+    getCurrentUser: async () => {
+      const token = TokenService.getToken();
+      if (!token) throw new Error('No authentication token');
+      return apiClient.getCurrentUser(token); // Explicit token passing
+    }
+  };
+}
+```
+
+#### Component Usage Pattern
+```typescript
+// ✅ REQUIRED: Always check for null apiClient
+function MyComponent() {
+  const apiClient = useApiClient();
+
+  useEffect(() => {
+    if (!apiClient) return; // SSR-safe guard
+
+    apiClient.getCurrentUser().then(setUser);
+  }, [apiClient]);
+}
+```
 
 ### Context-Based State Management
 ```typescript

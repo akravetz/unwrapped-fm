@@ -3,7 +3,7 @@ description:
 globs:
 alwaysApply: true
 ---
-# Core Project Rules - Music Taste Judge
+# Core Project Rules - unwrapped.fm
 
 ## Critical Implementation Rules ⚠️
 
@@ -33,6 +33,32 @@ alwaysApply: true
 - **Async everywhere**: Database operations, HTTP calls, file I/O
 - **Proper session management**: Use `Depends(get_session)` for database
 - **Context managers**: `async with httpx.AsyncClient() as client:`
+
+### SSR-Compatible Architecture (MANDATORY) ⚠️
+- **NEVER use `typeof window !== 'undefined'` checks**: Anti-pattern for SSR
+- **ALWAYS separate HTTP clients from browser APIs**: Clean architecture
+- **ALWAYS use SSR-safe hooks**: Return null during SSR, handle gracefully
+- **ALWAYS pass tokens explicitly**: No hidden dependencies in interceptors
+
+#### Required Pattern for API Access
+```typescript
+// ✅ CORRECT: SSR-safe hook pattern
+export function useApiClient(): AuthenticatedApiClient | null {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+  if (!isClient) return null; // SSR-safe
+  // ... return client with explicit token management
+}
+
+// ✅ CORRECT: Component usage
+function MyComponent() {
+  const apiClient = useApiClient();
+  useEffect(() => {
+    if (!apiClient) return; // Always check for null
+    apiClient.getCurrentUser().then(setUser);
+  }, [apiClient]);
+}
+```
 
 ## Authentication Architecture ✅ IMPLEMENTED
 
@@ -74,7 +100,7 @@ jwt_token = create_user_token(user.id)
 ### Backend Commands
 ```bash
 cd backend/
-uv run uvicorn src.musicjudge.main:app --reload  # Dev server
+uv run uvicorn src.unwrapped.main:app --reload  # Dev server
 uv run pytest                                     # Tests
 uv run ruff check . && uv run ruff format .      # Quality check
 ```
