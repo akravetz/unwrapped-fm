@@ -60,6 +60,81 @@ function MyComponent() {
 }
 ```
 
+## Background Task Architecture ✅ IMPLEMENTED NEW!
+
+### Background Task Patterns (Production Ready)
+- **Status-driven processing**: Use enum status fields (PENDING/PROCESSING/COMPLETED/FAILED)
+- **Idempotent operations**: Begin endpoint returns existing or creates new
+- **One analysis per user**: Database unique constraint on user_id
+- **Comprehensive error handling**: Log errors and update database status
+- **Atlas migrations**: Use `task db:migrate:diff` and `task db:migrate:apply`
+
+#### Required Background Task Service Pattern
+```python
+# ✅ CORRECT: Three-method background task pattern
+class MusicAnalysisService:
+    async def begin_analysis(self, user_id: int) -> MusicAnalysisResult:
+        """Idempotent: Returns existing or creates new analysis"""
+
+    async def poll_analysis(self, user_id: int) -> AnalysisStatusResponse:
+        """Real-time status with timestamps"""
+
+    async def get_analysis(self, user_id: int) -> MusicAnalysisResult:
+        """Validates completed status and returns results"""
+
+# ✅ CORRECT: Background processing with error handling
+async def process_music_analysis_task(analysis_id: int):
+    try:
+        # Update status to PROCESSING
+        # Run actual analysis
+        # Update status to COMPLETED
+    except Exception as e:
+        # Log error and update status to FAILED
+        logger.error(f"Analysis failed: {e}")
+        # Update error_message in database
+```
+
+#### Required Database Schema Pattern
+```python
+# ✅ CORRECT: Status tracking with unique constraint
+class MusicAnalysisResult(SQLModel, table=True):
+    status: AnalysisStatus = Field(default=AnalysisStatus.PENDING)
+    error_message: str | None = Field(default=None)
+    started_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None)
+    user_id: int = Field(foreign_key="user.id", unique=True)  # One per user
+
+    # Analysis fields nullable for pending state
+    ai_analysis: str | None = Field(default=None)
+    music_data: dict | None = Field(default=None)
+```
+
+#### Required API Endpoint Pattern
+```python
+# ✅ CORRECT: RESTful background task endpoints
+@router.post("/analysis/begin")  # Idempotent
+@router.get("/analysis/status")  # Status polling
+@router.get("/analysis/result")  # Result retrieval
+
+# ✅ CORRECT: FastAPI BackgroundTasks integration
+async def begin_background_analysis(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    service: MusicAnalysisService = Depends(get_music_analysis_service)
+):
+    analysis = await service.begin_analysis(current_user.id)
+    if analysis.status == AnalysisStatus.PENDING:
+        background_tasks.add_task(process_music_analysis_task, analysis.id)
+    return analysis
+```
+
+### Atlas Migration Workflow (MANDATORY)
+- **NEVER edit database schema manually**: Always use Atlas migrations
+- **Generate migrations**: `task db:migrate:diff <descriptive_name>`
+- **Apply migrations**: `task db:migrate:apply`
+- **Version control**: All migrations committed to git
+- **Team collaboration**: Migrations ensure consistent schema across environments
+
 ## Authentication Architecture ✅ IMPLEMENTED
 
 ### JWT + Spotify OAuth Flow

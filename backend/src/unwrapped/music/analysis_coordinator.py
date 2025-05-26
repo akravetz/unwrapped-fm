@@ -32,7 +32,9 @@ class AnalysisCoordinator:
         analysis_result = await self._analyze_music_with_ai(music_data)
 
         # Step 3: Persist results and return response
-        return await self.result_persister.save_analysis_result(user_id, analysis_result)
+        return await self.result_persister.save_analysis_result(
+            user_id, analysis_result
+        )
 
     async def _analyze_music_with_ai(
         self, music_data: dict[str, Any]
@@ -62,8 +64,7 @@ class AnalysisCoordinator:
         except Exception as e:
             # If AI fails, fall back to enhanced mock analysis
             self.logger.warning(
-                "AI analysis failed, using fallback analysis",
-                extra={'error': str(e)}
+                "AI analysis failed, using fallback analysis", extra={"error": str(e)}
             )
             return self._fallback_analysis(music_data)
 

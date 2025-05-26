@@ -38,10 +38,7 @@ class SpotifyDataCollector:
             raise SpotifyAPIError(f"Failed to fetch music data: {e}") from e
 
     async def _fetch_top_items(
-        self,
-        access_token: str,
-        user_id: int,
-        music_data: dict[str, Any]
+        self, access_token: str, user_id: int, music_data: dict[str, Any]
     ) -> None:
         """Fetch top tracks and artists for all time ranges."""
         for time_range in ["short_term", "medium_term", "long_term"]:
@@ -56,8 +53,8 @@ class SpotifyDataCollector:
                 log_error_with_context(
                     self.logger,
                     e,
-                    {'time_range': time_range, 'endpoint': 'top_tracks'},
-                    user_id
+                    {"time_range": time_range, "endpoint": "top_tracks"},
+                    user_id,
                 )
                 music_data[f"top_tracks_{time_range}"] = {"items": []}
 
@@ -72,38 +69,27 @@ class SpotifyDataCollector:
                 log_error_with_context(
                     self.logger,
                     e,
-                    {'time_range': time_range, 'endpoint': 'top_artists'},
-                    user_id
+                    {"time_range": time_range, "endpoint": "top_artists"},
+                    user_id,
                 )
                 music_data[f"top_artists_{time_range}"] = {"items": []}
 
     async def _fetch_recently_played(
-        self,
-        access_token: str,
-        user_id: int,
-        music_data: dict[str, Any]
+        self, access_token: str, user_id: int, music_data: dict[str, Any]
     ) -> None:
         """Fetch recently played tracks."""
         try:
             music_data[
                 "recently_played"
-            ] = await self.spotify_client.get_recently_played(
-                access_token, limit=50
-            )
+            ] = await self.spotify_client.get_recently_played(access_token, limit=50)
         except Exception as e:
             log_error_with_context(
-                self.logger,
-                e,
-                {'endpoint': 'recently_played'},
-                user_id
+                self.logger, e, {"endpoint": "recently_played"}, user_id
             )
             music_data["recently_played"] = {"items": []}
 
     async def _fetch_audio_features(
-        self,
-        access_token: str,
-        user_id: int,
-        music_data: dict[str, Any]
+        self, access_token: str, user_id: int, music_data: dict[str, Any]
     ) -> None:
         """Fetch audio features for all collected tracks."""
         # Extract track IDs from all sources
@@ -134,8 +120,8 @@ class SpotifyDataCollector:
                     log_error_with_context(
                         self.logger,
                         e,
-                        {'endpoint': 'audio_features', 'batch_number': i // 100 + 1},
-                        user_id
+                        {"endpoint": "audio_features", "batch_number": i // 100 + 1},
+                        user_id,
                     )
                     # Continue with other batches
 

@@ -3,7 +3,7 @@
 import asyncio
 import re
 from collections.abc import AsyncGenerator
-from typing import AsyncGenerator as AsyncGen
+from collections.abc import AsyncGenerator as AsyncGen
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -60,7 +60,7 @@ async def postgres_container():
             )
 
         # Store whether Atlas was applied for use in async_engine fixture
-        setattr(postgres, "_atlas_applied", atlas_applied)
+        postgres._atlas_applied = atlas_applied
         yield postgres
 
 

@@ -17,9 +17,7 @@ class ResultPersister:
         self.logger = get_logger(__name__)
 
     async def save_analysis_result(
-        self,
-        user_id: int,
-        analysis_result: dict[str, any]
+        self, user_id: int, analysis_result: dict[str, any]
     ) -> MusicAnalysisResponse:
         """Save analysis result to database and return response."""
         try:
@@ -43,10 +41,10 @@ class ResultPersister:
             self.logger.info(
                 "Analysis result saved successfully",
                 extra={
-                    'user_id': user_id,
-                    'share_token': share_token,
-                    'rating_text': analysis_result["rating_text"]
-                }
+                    "user_id": user_id,
+                    "share_token": share_token,
+                    "rating_text": analysis_result["rating_text"],
+                },
             )
 
             # Return response

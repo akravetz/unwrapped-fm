@@ -1,0 +1,2 @@
+-- Modify "musicanalysisresult" table
+ALTER TABLE "musicanalysisresult" ALTER COLUMN "rating_text" DROP NOT NULL, ALTER COLUMN "rating_description" DROP NOT NULL, ALTER COLUMN "x_axis_pos" DROP NOT NULL, ALTER COLUMN "y_axis_pos" DROP NOT NULL, ALTER COLUMN "share_token" DROP NOT NULL, ADD COLUMN "status" character varying NOT NULL, ADD COLUMN "error_message" character varying NULL, ADD COLUMN "started_at" timestamptz NULL, ADD COLUMN "completed_at" timestamptz NULL, ADD CONSTRAINT "musicanalysisresult_user_id_key" UNIQUE ("user_id");

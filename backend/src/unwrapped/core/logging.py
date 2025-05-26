@@ -2,8 +2,8 @@
 
 import logging
 import sys
-from typing import Any, Dict, Optional
 from datetime import datetime
+from typing import Any
 
 from .config import settings
 
@@ -20,25 +20,25 @@ class StructuredFormatter(logging.Formatter):
 
         # Create structured log entry
         log_data = {
-            'timestamp': record.timestamp,
-            'level': record.levelname,
-            'logger': record.name,
-            'message': record.getMessage(),
-            'environment': record.environment
+            "timestamp": record.timestamp,
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "environment": record.environment,
         }
 
         # Add extra fields if present
-        if hasattr(record, 'user_id'):
-            log_data['user_id'] = record.user_id
+        if hasattr(record, "user_id"):
+            log_data["user_id"] = record.user_id
 
-        if hasattr(record, 'request_id'):
-            log_data['request_id'] = record.request_id
+        if hasattr(record, "request_id"):
+            log_data["request_id"] = record.request_id
 
-        if hasattr(record, 'spotify_endpoint'):
-            log_data['spotify_endpoint'] = record.spotify_endpoint
+        if hasattr(record, "spotify_endpoint"):
+            log_data["spotify_endpoint"] = record.spotify_endpoint
 
         if record.exc_info:
-            log_data['exception'] = self.formatException(record.exc_info)
+            log_data["exception"] = self.formatException(record.exc_info)
 
         return str(log_data)
 
@@ -48,7 +48,9 @@ def setup_logging() -> None:
 
     # Root logger configuration
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO if settings.environment == 'production' else logging.DEBUG)
+    root_logger.setLevel(
+        logging.INFO if settings.environment == "production" else logging.DEBUG
+    )
 
     # Remove existing handlers
     for handler in root_logger.handlers[:]:
@@ -58,10 +60,10 @@ def setup_logging() -> None:
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
 
-    if settings.environment == 'development':
+    if settings.environment == "development":
         # Simple format for development
         formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
     else:
         # Structured format for production
@@ -71,8 +73,8 @@ def setup_logging() -> None:
     root_logger.addHandler(console_handler)
 
     # Suppress noisy third-party loggers
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-    logging.getLogger('httpx').setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -83,16 +85,16 @@ def get_logger(name: str) -> logging.Logger:
 def log_spotify_api_call(
     logger: logging.Logger,
     endpoint: str,
-    user_id: Optional[int] = None,
-    request_id: Optional[str] = None,
-    **kwargs: Any
+    user_id: int | None = None,
+    request_id: str | None = None,
+    **kwargs: Any,
 ) -> None:
     """Log Spotify API calls with structured data."""
     extra = {
-        'spotify_endpoint': endpoint,
-        'user_id': user_id,
-        'request_id': request_id,
-        **kwargs
+        "spotify_endpoint": endpoint,
+        "user_id": user_id,
+        "request_id": request_id,
+        **kwargs,
     }
     logger.info(f"Spotify API call to {endpoint}", extra=extra)
 
@@ -100,16 +102,12 @@ def log_spotify_api_call(
 def log_error_with_context(
     logger: logging.Logger,
     error: Exception,
-    context: Dict[str, Any],
-    user_id: Optional[int] = None,
-    request_id: Optional[str] = None
+    context: dict[str, Any],
+    user_id: int | None = None,
+    request_id: str | None = None,
 ) -> None:
     """Log errors with additional context."""
-    extra = {
-        'user_id': user_id,
-        'request_id': request_id,
-        'error_context': context
-    }
+    extra = {"user_id": user_id, "request_id": request_id, "error_context": context}
     logger.error(f"Error occurred: {str(error)}", exc_info=True, extra=extra)
 
 

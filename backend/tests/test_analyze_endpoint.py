@@ -17,17 +17,22 @@ class TestAnalyzeEndpoints:
     ):
         """Test successful music taste analysis."""
         # Mock the spotify client and AI client
-        with patch(
-            "src.unwrapped.music.spotify_data_collector.spotify_music_client",
-            mock_spotify_client,
-        ), patch(
-            "src.unwrapped.music.token_refresh_service.spotify_music_client",
-            mock_spotify_client,
-        ), patch(
-            "src.unwrapped.music.analysis_coordinator.MusicAnalysisAI"
-        ) as mock_ai_class:
+        with (
+            patch(
+                "src.unwrapped.music.spotify_data_collector.spotify_music_client",
+                mock_spotify_client,
+            ),
+            patch(
+                "src.unwrapped.music.token_refresh_service.spotify_music_client",
+                mock_spotify_client,
+            ),
+            patch(
+                "src.unwrapped.music.analysis_coordinator.MusicAnalysisAI"
+            ) as mock_ai_class,
+        ):
             # Configure mock AI client to return a test response
             mock_ai_instance = mock_ai_class.return_value
+
             async def mock_analyze_music_taste(music_data):
                 return {
                     "rating_text": "TEST MUSIC TASTE",
@@ -35,6 +40,7 @@ class TestAnalyzeEndpoints:
                     "x_axis_pos": 0.5,
                     "y_axis_pos": -0.2,
                 }
+
             mock_ai_instance.analyze_music_taste = mock_analyze_music_taste
 
             response = await client.post(

@@ -1,7 +1,6 @@
 """Token refresh service for managing Spotify authentication tokens."""
 
 from datetime import UTC, datetime, timedelta
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,7 +56,7 @@ class TokenRefreshService:
 
                     self.logger.info(
                         "Successfully refreshed Spotify token",
-                        extra={'user_id': user_id}
+                        extra={"user_id": user_id},
                     )
 
                     return token_info.access_token

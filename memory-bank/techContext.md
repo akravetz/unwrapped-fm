@@ -482,3 +482,52 @@ Key Insight: Maintain external API compatibility during decomposition
 - Update tests incrementally
 - Preserve all existing functionality
 ```
+
+### Background Task System ✅ NEW!
+```python
+# Background task architecture with status tracking
+class AnalysisStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+# Enhanced database model with background task support
+class MusicAnalysisResult(SQLModel, table=True):
+    status: AnalysisStatus = Field(default=AnalysisStatus.PENDING)
+    error_message: str | None = Field(default=None)
+    started_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None)
+    user_id: int = Field(foreign_key="user.id", unique=True)  # One per user
+
+    # Analysis fields made nullable for pending state
+    ai_analysis: str | None = Field(default=None)
+    music_data: dict | None = Field(default=None)
+
+# Background task service methods
+async def begin_analysis(self, user_id: int) -> MusicAnalysisResult:
+    # Idempotent: returns existing or creates new
+
+async def poll_analysis(self, user_id: int) -> AnalysisStatusResponse:
+    # Real-time status with timestamps
+
+async def get_analysis(self, user_id: int) -> MusicAnalysisResult:
+    # Validates completed status and returns results
+
+# Background processing with error handling
+async def process_music_analysis_task(analysis_id: int):
+    # Runs actual analysis with comprehensive error handling
+```
+
+### Atlas Migration Workflow ✅ NEW!
+```bash
+# Database migration using Atlas tasks
+task db:migrate:diff add_background_task_support  # Generate migration
+task db:migrate:apply                              # Apply migration
+
+# Benefits:
+# - Version controlled schema changes
+# - Automatic migration generation
+# - Safe rollback capabilities
+# - Team collaboration on schema changes
+```

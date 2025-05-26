@@ -17,7 +17,83 @@
 └─────────────────┘    └─────────────────┘
 ```
 
-### Revolutionary UX Pattern: Direct Flow Architecture ✅ NEW!
+### Background Task Architecture (NEW) ✅
+
+#### Background Processing Pattern
+```python
+# Status-driven background task pattern
+class AnalysisStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+# Database model with status tracking
+class MusicAnalysisResult(SQLModel, table=True):
+    status: AnalysisStatus = Field(default=AnalysisStatus.PENDING)
+    error_message: str | None = Field(default=None)
+    started_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None)
+    user_id: int = Field(foreign_key="user.id", unique=True)  # One per user
+```
+
+#### Background Task Service Pattern
+```python
+# Three-method pattern for background task management
+class MusicAnalysisService:
+    async def begin_analysis(self, user_id: int) -> MusicAnalysisResult:
+        """Idempotent: Returns existing or creates new analysis"""
+
+    async def poll_analysis(self, user_id: int) -> AnalysisStatusResponse:
+        """Real-time status with timestamps"""
+
+    async def get_analysis(self, user_id: int) -> MusicAnalysisResult:
+        """Validates completed status and returns results"""
+
+# Background task processing
+async def process_music_analysis_task(analysis_id: int):
+    """Runs actual analysis with proper error handling"""
+```
+
+#### API Endpoint Pattern
+```python
+# RESTful background task endpoints
+@router.post("/analysis/begin", response_model=BeginAnalysisResponse)
+async def begin_background_analysis(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    service: MusicAnalysisService = Depends(get_music_analysis_service)
+) -> BeginAnalysisResponse:
+    """Begin background analysis (idempotent)"""
+
+@router.get("/analysis/status", response_model=AnalysisStatusResponse)
+async def get_analysis_status(
+    current_user: User = Depends(get_current_user),
+    service: MusicAnalysisService = Depends(get_music_analysis_service)
+) -> AnalysisStatusResponse:
+    """Poll analysis status with timestamps"""
+
+@router.get("/analysis/result", response_model=MusicAnalysisResponse)
+async def get_analysis_result(
+    current_user: User = Depends(get_current_user),
+    service: MusicAnalysisService = Depends(get_music_analysis_service)
+) -> MusicAnalysisResponse:
+    """Get completed analysis results"""
+```
+
+#### Database Migration Pattern (Atlas)
+```bash
+# Atlas migration workflow
+task db:migrate:diff add_background_task_support  # Generate migration
+task db:migrate:apply                              # Apply migration
+
+# Migration adds:
+# - status tracking fields
+# - unique constraint on user_id
+# - nullable analysis fields for pending state
+```
+
+### Revolutionary UX Pattern: Direct Flow Architecture ✅
 
 #### Smart Routing Pattern (Implemented)
 ```typescript
@@ -61,6 +137,12 @@ Visit → Auto-Auth Check → Results Screen (Direct)
 
 ANALYZE AGAIN FLOW:
 Results Screen → "Analyze Again" → Loading Screen → Updated Results
+
+BACKGROUND TASK FLOW:
+Begin Analysis → Status Polling → Result Retrieval
+      ↓              ↓               ↓
+   Idempotent    Real-time      Validated
+   Operation     Updates        Completion
 ```
 
 ### Domain-Driven Architecture (Enhanced)
