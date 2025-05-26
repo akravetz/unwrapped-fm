@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import desc, select
 
 from ..auth.service import UserService
 from ..core.exceptions import SpotifyAPIError
@@ -121,7 +121,7 @@ class MusicAnalysisService:
 
             # Fetch audio features in batches (Spotify API limit is 100)
             track_ids_list = list(track_ids)
-            audio_features = []
+            audio_features: list[Any] = []
 
             if track_ids_list:
                 for i in range(0, len(track_ids_list), 100):
@@ -137,7 +137,7 @@ class MusicAnalysisService:
                         )
                         # Continue with other batches
 
-            music_data["audio_features"] = audio_features
+            music_data["audio_features"] = audio_features  # type: ignore[assignment]
 
             return music_data
 
@@ -310,7 +310,7 @@ class MusicAnalysisService:
             stmt = (
                 select(MusicAnalysisResult)
                 .where(MusicAnalysisResult.user_id == user_id)
-                .order_by(MusicAnalysisResult.created_at.desc())
+                .order_by(desc(MusicAnalysisResult.created_at))
                 .limit(1)
             )
 
@@ -321,10 +321,10 @@ class MusicAnalysisService:
                 return None
 
             return MusicAnalysisResponse(
-                rating_text=analysis.rating_text,
-                rating_description=analysis.rating_description,
-                x_axis_pos=analysis.x_axis_pos,
-                y_axis_pos=analysis.y_axis_pos,
+                rating_text=analysis.rating_text,  # type: ignore[attr-defined]
+                rating_description=analysis.rating_description,  # type: ignore[attr-defined]
+                x_axis_pos=analysis.x_axis_pos,  # type: ignore[attr-defined]
+                y_axis_pos=analysis.y_axis_pos,  # type: ignore[attr-defined]
                 share_token=analysis.share_token,
                 analyzed_at=analysis.created_at,
             )
@@ -347,10 +347,10 @@ class MusicAnalysisService:
                 raise SpotifyAPIError("Analysis not found")
 
             return PublicAnalysisResponse(
-                rating_text=analysis.rating_text,
-                rating_description=analysis.rating_description,
-                x_axis_pos=analysis.x_axis_pos,
-                y_axis_pos=analysis.y_axis_pos,
+                rating_text=analysis.rating_text,  # type: ignore[attr-defined]
+                rating_description=analysis.rating_description,  # type: ignore[attr-defined]
+                x_axis_pos=analysis.x_axis_pos,  # type: ignore[attr-defined]
+                y_axis_pos=analysis.y_axis_pos,  # type: ignore[attr-defined]
                 analyzed_at=analysis.created_at,
             )
 

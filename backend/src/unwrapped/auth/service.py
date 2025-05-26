@@ -1,9 +1,10 @@
 """User service layer for authentication operations."""
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from .models import SpotifyToken, User, UserCreate, UserUpdate
 
@@ -18,19 +19,19 @@ class UserService:
         """Get user by ID."""
         statement = select(User).where(User.id == user_id)
         result = await self.session.execute(statement)
-        return result.scalar_one_or_none()
+        return cast(User | None, result.scalar_one_or_none())
 
     async def get_user_by_spotify_id(self, spotify_id: str) -> User | None:
         """Get user by Spotify ID."""
         statement = select(User).where(User.spotify_id == spotify_id)
         result = await self.session.execute(statement)
-        return result.scalar_one_or_none()
+        return cast(User | None, result.scalar_one_or_none())
 
     async def get_user_by_email(self, email: str) -> User | None:
         """Get user by email."""
         statement = select(User).where(User.email == email)
         result = await self.session.execute(statement)
-        return result.scalar_one_or_none()
+        return cast(User | None, result.scalar_one_or_none())
 
     async def create_user(self, user_data: UserCreate) -> User:
         """Create a new user."""

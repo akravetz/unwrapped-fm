@@ -62,7 +62,7 @@ line-ending = "auto"
 
 [tool.pyrefly]
 search_path = [
-    "src/", "tests/", "scripts/"
+    "src/", "tests/", "scripts/", "."
 ]
 
 [tool.mypy]

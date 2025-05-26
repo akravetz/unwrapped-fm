@@ -32,13 +32,13 @@ class MusicAnalysisAI:
             user_prompt = self._create_user_prompt(music_summary)
 
             # Call DeepSeek API
-            response = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(  # type: ignore[arg-type]
                 model="deepseek-chat",
-                messages=[
+                messages=[  # type: ignore[arg-type]
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                response_format={"type": "json_object"},
+                response_format={"type": "json_object"},  # type: ignore[arg-type]
                 max_tokens=800,
                 temperature=0.8,  # Add some creativity for witty responses
             )
@@ -78,7 +78,7 @@ class MusicAnalysisAI:
 
     def _prepare_music_summary(self, music_data: dict[str, Any]) -> dict[str, Any]:
         """Prepare a comprehensive summary of the user's music data for AI analysis."""
-        summary = {
+        summary: dict[str, Any] = {
             "total_unique_tracks": 0,
             "total_unique_artists": 0,
             "genres": set(),

@@ -27,7 +27,7 @@ class SpotifyAuthClient:
         self.auth_url = "https://accounts.spotify.com/authorize"
         self.token_url = "https://accounts.spotify.com/api/token"
 
-    def get_auth_url(self, state: str = None) -> str:
+    def get_auth_url(self, state: str | None = None) -> str:
         """Generate Spotify OAuth authorization URL."""
         if not self.client_id:
             raise SpotifyAPIError("Spotify client ID not configured")

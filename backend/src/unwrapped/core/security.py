@@ -1,6 +1,7 @@
 """Security utilities for JWT and authentication."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -28,7 +29,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return encoded_jwt
 
 
-def verify_token(token: str) -> dict | None:
+def verify_token(token: str | None) -> dict[str, Any] | None:
     """Verify and decode a JWT token."""
     if not token:  # Handle None, empty string, or other falsy values
         return None
@@ -37,7 +38,7 @@ def verify_token(token: str) -> dict | None:
         payload = jwt.decode(
             token, settings.secret_key, algorithms=[settings.algorithm]
         )
-        return payload
+        return dict(payload)
     except JWTError:
         return None
 

@@ -85,6 +85,8 @@ async def callback(
         logger.info(f"User created/updated in database: {user.id}")
 
         # Create JWT token for our app
+        if user.id is None:
+            raise HTTPException(status_code=500, detail="User ID is None after creation")
         jwt_token = create_user_token(user.id)
         logger.info("JWT token created successfully")
 

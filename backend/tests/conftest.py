@@ -3,6 +3,7 @@
 import asyncio
 import re
 from collections.abc import AsyncGenerator
+from typing import AsyncGenerator as AsyncGen
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -59,7 +60,7 @@ async def postgres_container():
             )
 
         # Store whether Atlas was applied for use in async_engine fixture
-        postgres._atlas_applied = atlas_applied
+        setattr(postgres, "_atlas_applied", atlas_applied)
         yield postgres
 
 
@@ -113,7 +114,7 @@ async def async_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture
-async def client(async_session) -> AsyncClient:
+async def client(async_session) -> AsyncGen[AsyncClient, None]:
     """Create async test client with database override that uses the same session."""
 
     def override_get_session():
