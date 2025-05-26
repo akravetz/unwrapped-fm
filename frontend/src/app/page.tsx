@@ -1,13 +1,12 @@
-'use client';
+import { AppRouter } from '@/shared/components/AppRouter'
 
-import React from 'react';
-import { ClientWrapper } from './ClientWrapper';
-import { AppRouter } from '@/shared';
-
-export default function HomePage() {
+export default function Home() {
   return (
-    <ClientWrapper>
-      <AppRouter />
-    </ClientWrapper>
-  );
+    <AppRouter>
+      <div>
+        <h1>Dashboard - Coming Soon</h1>
+        <p>You are authenticated! The main dashboard will be built here.</p>
+      </div>
+    </AppRouter>
+  )
 }

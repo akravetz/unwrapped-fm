@@ -1,144 +1,73 @@
-/**
- * Clean API client without browser API dependencies
- * All token management is handled externally
- * Can be safely used in both SSR and client-side contexts
- */
+import { tokenService } from '../tokens/tokenService'
+import type { User, LoginResponse, SpotifyAuthResponse } from '@/domains/authentication/types/auth.types'
 
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { User, LoginResponse, AuthStatusResponse, ApiError, MusicAnalysisResponse } from '@/domains/authentication/types/auth.types';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://127.0.0.1:8443'
 
-export class ApiClient {
-  private client: AxiosInstance;
-  private baseURL: string;
-
-  constructor() {
-    // Use environment-based URL detection (SSR-safe)
-    this.baseURL = process.env.NODE_ENV === 'production'
-      ? process.env.NEXT_PUBLIC_API_URL ?? 'https://api.example.com/api/v1' // Provide a default for production
-      : 'https://127.0.0.1:8443/api/v1';
-
-    this.client = axios.create({
-      baseURL: this.baseURL,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Response interceptor for error handling only
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        return Promise.reject(this.handleApiError(error));
-      }
-    );
-  }
-
-  private handleApiError(error: unknown): ApiError {
-    if (error && typeof error === 'object' && 'response' in error) {
-      const axiosError = error as { response: { data?: { detail?: string; message?: string }; status: number } };
-      return {
-        message: axiosError.response.data?.detail || axiosError.response.data?.message || 'An error occurred',
-        detail: axiosError.response.data?.detail || axiosError.response.data?.message || 'An error occurred'
-      };
-    } else if (error && typeof error === 'object' && 'request' in error) {
-      return {
-        message: 'Network error - please check your connection',
-        detail: 'No response received from server'
-      };
-    } else {
-      const errorMessage = error && typeof error === 'object' && 'message' in error
-        ? (error as { message: string }).message
-        : 'An unexpected error occurred';
-      return {
-        message: errorMessage,
-        detail: errorMessage
-      };
-    }
-  }
-
-  /**
-   * Make authenticated request with token
-   */
-  private async makeAuthenticatedRequest<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    url: string,
-    token?: string | null,
-    data?: Record<string, unknown>
-  ): Promise<T> {
-    const config = {
-      method: method.toLowerCase(),
-      url,
-      ...(data && { data }),
-      ...(token && {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }),
-    };
-
-    const response: AxiosResponse<T> = await this.client.request(config);
-    return response.data;
-  }
-
-  // Authentication endpoints (no token required)
-  async getAuthUrl(): Promise<LoginResponse> {
-    const response: AxiosResponse<LoginResponse> = await this.client.get('/auth/login');
-    return response.data;
-  }
-
-  async handleAuthCallback(code: string, state: string): Promise<{ access_token: string; user: User }> {
-    const response = await this.client.post('/auth/callback', { code, state });
-    return response.data;
-  }
-
-  // Authenticated endpoints (token required)
-  async getAuthStatus(token: string): Promise<AuthStatusResponse> {
-    return this.makeAuthenticatedRequest<AuthStatusResponse>('GET', '/auth/status', token);
-  }
-
-  async getCurrentUser(token: string): Promise<User> {
-    return this.makeAuthenticatedRequest<User>('GET', '/auth/me', token);
-  }
-
-  async logout(token: string): Promise<void> {
-    await this.makeAuthenticatedRequest<void>('POST', '/auth/logout', token);
-  }
-
-  async refreshToken(token: string): Promise<{ access_token: string }> {
-    return this.makeAuthenticatedRequest<{ access_token: string }>('POST', '/auth/refresh', token);
-  }
-
-  // Music analysis endpoints
-  async getLatestAnalysis(token: string): Promise<MusicAnalysisResponse | null> {
-    return this.makeAuthenticatedRequest<MusicAnalysisResponse | null>('GET', '/music/analysis/latest', token);
-  }
-
-  async analyzeMusic(token: string): Promise<MusicAnalysisResponse> {
-    // Use longer timeout for analysis since it involves Spotify API calls + AI processing
-    const config = {
-      method: 'post',
-      url: '/music/analyze',
-      timeout: 60000, // 60 seconds for analysis
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-
-    const response: AxiosResponse<MusicAnalysisResponse> = await this.client.request(config);
-    return response.data;
-  }
-
-  // Health check (no auth required)
-  async healthCheck(): Promise<boolean> {
-    try {
-      await this.client.get('/health');
-      return true;
-    } catch {
-      return false;
-    }
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public response?: Record<string, unknown>
+  ) {
+    super(message)
+    this.name = 'ApiError'
   }
 }
 
-// Export singleton instance
-export const apiClient = new ApiClient();
+export class AuthenticatedApiClient {
+  private baseUrl: string
+
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = tokenService.getToken()
+
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, config)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new ApiError(
+        errorData.detail || 'An error occurred',
+        response.status,
+        errorData
+      )
+    }
+
+    return response.json()
+  }
+
+  async getCurrentUser(): Promise<User> {
+    return this.request<User>('/api/v1/auth/me')
+  }
+
+  async getSpotifyAuthUrl(): Promise<SpotifyAuthResponse> {
+    return this.request<SpotifyAuthResponse>('/api/v1/auth/login')
+  }
+
+  async handleAuthCallback(code: string, state: string): Promise<LoginResponse> {
+    return this.request<LoginResponse>('/api/v1/auth/callback', {
+      method: 'POST',
+      body: JSON.stringify({ code, state }),
+    })
+  }
+
+  async logout(): Promise<void> {
+    await this.request('/api/v1/auth/logout', { method: 'POST' })
+  }
+}
+
+export const apiClient = new AuthenticatedApiClient()

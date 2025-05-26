@@ -1,215 +1,87 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react'
 import {
-  Container,
   Box,
+  Container,
   Typography,
-  Stack,
   Card,
   CardContent,
-  Fade
-} from '@mui/material';
-import { useAuth } from '@/domains/authentication';
-import { useApiClient } from '@/domains/authentication/hooks/useApiClient';
-
-const loadingMessages = [
-  "Compiling a list of breakup songs you played ironically...",
-  "Checking if that one track was a joke. It wasn't...",
-  "I bet you used to make a lot of mix tapes...",
-  "Tuning in to your questionable life choices...",
-  "Finding a rhyme for 'musical embarrassment'...",
-  "Cross-referencing your top artists with community service records...",
-  "Interpreting your taste through the lens of someone who's heard good music..."
-];
+  Stack,
+  LinearProgress,
+  CircularProgress
+} from '@mui/material'
 
 interface LoadingScreenProps {
-  onComplete?: () => void;
+  message?: string
+  progress?: number
+  details?: string[]
 }
 
-export function LoadingScreen({ onComplete }: LoadingScreenProps) {
-  const { refreshLatestAnalysis } = useAuth();
-  const apiClient = useApiClient();
-  const [messageStates, setMessageStates] = useState<boolean[]>(
-    new Array(loadingMessages.length).fill(false)
-  );
-  const [analysisStarted, setAnalysisStarted] = useState(false);
-
-  const startAnalysis = useCallback(async () => {
-    if (!apiClient) {
-      console.error('API client not available');
-      return;
-    }
-
-    try {
-      // Start the analysis in the background
-      const analysisPromise = apiClient.analyzeMusic();
-
-      // Wait for analysis to complete
-      await analysisPromise;
-
-      // Update the auth context with the new analysis
-      await refreshLatestAnalysis();
-
-      // Navigate to results immediately
-      onComplete?.();
-
-    } catch (error) {
-      console.error('Analysis failed:', error);
-
-      // Log more detailed error information
-      if (error && typeof error === 'object') {
-        if ('message' in error) {
-          console.error('Error message:', (error as { message: unknown }).message);
-        }
-        if ('detail' in error) {
-          console.error('Error detail:', (error as { detail: unknown }).detail);
-        }
-        if ('response' in error) {
-          console.error('Response error:', (error as { response: unknown }).response);
-        }
-      }
-
-      // Still navigate to results on error (graceful degradation)
-      onComplete?.();
-    }
-  }, [apiClient, refreshLatestAnalysis, onComplete]);
-
-  // Start sequential message display
-  useEffect(() => {
-    const showNextMessage = (index: number) => {
-      if (index < loadingMessages.length) {
-        setTimeout(() => {
-          setMessageStates(prev => {
-            const newStates = [...prev];
-            newStates[index] = true;
-            return newStates;
-          });
-          showNextMessage(index + 1);
-        }, index === 0 ? 500 : 1500); // First message shows after 500ms, others after 1.5s
-      }
-    };
-
-    showNextMessage(0);
-  }, []);
-
-  // Start analysis when apiClient becomes available
-  useEffect(() => {
-    if (apiClient && !analysisStarted) {
-      setAnalysisStarted(true);
-      startAnalysis();
-    }
-  }, [apiClient, analysisStarted, startAnalysis]);
-
-  // Show initial loading state if API client is not available yet
-  if (!apiClient) {
-    return (
-      <Container maxWidth="md">
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-          py={4}
-        >
-          <Card
-            sx={{
-              width: '100%',
-              maxWidth: 600,
-              p: 4,
-              textAlign: 'center'
-            }}
-          >
-            <CardContent>
-              <Stack spacing={4} alignItems="center">
-                <Typography
-                  variant="h4"
-                  component="h1"
-                  sx={{
-                    background: 'linear-gradient(45deg, #1DB954 30%, #1ED760 90%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    fontWeight: 700,
-                  }}
-                >
-                  unwrapped.fm
-                </Typography>
-
-                <Typography variant="body1" color="text.primary">
-                  Initializing analysis...
-                </Typography>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Box>
-      </Container>
-    );
-  }
-
+export function LoadingScreen({
+  message = 'Analyzing your music...',
+  progress,
+  details = []
+}: LoadingScreenProps) {
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="sm">
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-        py={4}
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 4,
+        }}
       >
-        <Card
-          sx={{
-            width: '100%',
-            maxWidth: 600,
-            p: 4,
-            textAlign: 'center'
-          }}
-        >
-          <CardContent>
-            <Stack spacing={4} alignItems="center">
-              {/* Title */}
-              <Typography
-                variant="h4"
-                component="h1"
-                sx={{
-                  background: 'linear-gradient(45deg, #1DB954 30%, #1ED760 90%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontWeight: 700,
-                }}
-              >
-                unwrapped.fm
+        <Card elevation={0} sx={{ width: '100%', maxWidth: 500 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Stack spacing={4} alignItems="center" textAlign="center">
+              <CircularProgress size={60} thickness={4} />
+
+              <Typography variant="h5" component="h1">
+                {message}
               </Typography>
 
-              {/* Loading messages - sequential display */}
-              <Box sx={{ minHeight: '300px', width: '100%' }}>
-                <Stack spacing={2} alignItems="flex-start">
-                  {loadingMessages.map((message, index) => (
-                    <Fade
+              {progress !== undefined && (
+                <Box sx={{ width: '100%' }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={progress}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {Math.round(progress)}% complete
+                  </Typography>
+                </Box>
+              )}
+
+              {details.length > 0 && (
+                <Stack spacing={1} alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    Current steps:
+                  </Typography>
+                  {details.map((detail, index) => (
+                    <Typography
                       key={index}
-                      in={messageStates[index]}
-                      timeout={800}
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontStyle: 'italic' }}
                     >
-                      <Typography
-                        variant="body1"
-                        color="text.primary"
-                        sx={{
-                          lineHeight: 1.6,
-                          textAlign: 'left',
-                          width: '100%',
-                          opacity: messageStates[index] ? 1 : 0
-                        }}
-                      >
-                        {message}
-                      </Typography>
-                    </Fade>
+                      • {detail}
+                    </Typography>
                   ))}
                 </Stack>
-              </Box>
+              )}
+
+              <Typography variant="body2" color="text.secondary">
+                This may take a few minutes while we analyze your listening history
+                and generate insights.
+              </Typography>
             </Stack>
           </CardContent>
         </Card>
       </Box>
     </Container>
-  );
+  )
 }

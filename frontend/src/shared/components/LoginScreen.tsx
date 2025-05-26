@@ -1,79 +1,52 @@
-'use client';
+'use client'
 
-import React from 'react';
+import React from 'react'
 import {
-  Container,
   Box,
+  Container,
   Typography,
-  Stack,
   Card,
-  CardContent
-} from '@mui/material';
-import { LoginButton } from '@/domains/authentication';
+  CardContent,
+  Stack
+} from '@mui/material'
+import { LoginButton } from '@/domains/authentication/components/LoginButton'
 
 export function LoginScreen() {
   return (
     <Container maxWidth="sm">
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-        py={4}
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 4,
+        }}
       >
-        <Card
-          sx={{
-            width: '100%',
-            maxWidth: 400,
-            p: 3,
-            textAlign: 'center'
-          }}
-        >
-          <CardContent>
-            <Stack spacing={3} alignItems="center">
-              {/* Title */}
-              <Typography
-                variant="h4"
-                component="h1"
-                sx={{
-                  background: 'linear-gradient(45deg, #1DB954 30%, #1ED760 90%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontWeight: 700,
-                }}
-              >
-                unwrapped.fm
+        <Card elevation={0} sx={{ width: '100%', maxWidth: 400 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Stack spacing={3} alignItems="center" textAlign="center">
+              <Typography variant="h3" component="h1" color="primary">
+                Unwrapped.fm
               </Typography>
 
-              {/* Main message */}
-              <Typography
-                variant="body1"
-                color="text.primary"
-                sx={{ lineHeight: 1.6 }}
-              >
-                Your friends think your taste in music is trash. Connect to your Spotify and we&apos;ll be the judge of that.
+              <Typography variant="body1" color="text.secondary">
+                Discover your music listening patterns and get AI-powered insights
+                into your Spotify data.
               </Typography>
 
-              {/* Login Button */}
-              <LoginButton size="large" fullWidth />
+              <Box sx={{ width: '100%', mt: 3 }}>
+                <LoginButton fullWidth size="large" />
+              </Box>
 
-              {/* Privacy notice */}
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  fontSize: '0.875rem',
-                  lineHeight: 1.5,
-                  mt: 2
-                }}
-              >
-                We do not store any of your listening data. We use it to analyze you and then throw it away.
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                We&apos;ll redirect you to Spotify to securely connect your account.
+                No passwords required.
               </Typography>
             </Stack>
           </CardContent>
         </Card>
       </Box>
     </Container>
-  );
+  )
 }

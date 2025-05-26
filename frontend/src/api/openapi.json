@@ -1,0 +1,696 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "unwrapped.fm",
+    "description": "AI-powered music taste analysis - get your Spotify listening habits brutally judged",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/auth/login": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Login",
+        "description": "Initiate Spotify OAuth flow.",
+        "operationId": "login_api_v1_auth_login_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Login Api V1 Auth Login Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/callback": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Callback",
+        "description": "Handle Spotify OAuth callback.",
+        "operationId": "callback_api_v1_auth_callback_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Code"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "State"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Get Current User",
+        "description": "Get current authenticated user.",
+        "operationId": "get_current_user_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Logout",
+        "description": "Logout user (client-side token removal).",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Logout Api V1 Auth Logout Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/status": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Auth Status",
+        "description": "Check authentication status and token validity.",
+        "operationId": "auth_status_api_v1_auth_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Auth Status Api V1 Auth Status Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/analysis/begin": {
+      "post": {
+        "tags": [
+          "music-analysis"
+        ],
+        "summary": "Begin Analysis",
+        "description": "Begin music analysis for user. Returns existing analysis if found, creates new if none exists.",
+        "operationId": "begin_analysis_api_v1_music_analysis_begin_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeginAnalysisResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/analysis/status": {
+      "get": {
+        "tags": [
+          "music-analysis"
+        ],
+        "summary": "Poll Analysis",
+        "description": "Get current status of user's music analysis.",
+        "operationId": "poll_analysis_api_v1_music_analysis_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/analysis/result": {
+      "get": {
+        "tags": [
+          "music-analysis"
+        ],
+        "summary": "Get Analysis",
+        "description": "Get completed music analysis result for user.",
+        "operationId": "get_analysis_api_v1_music_analysis_result_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicAnalysisResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/analyze": {
+      "post": {
+        "tags": [
+          "music-analysis"
+        ],
+        "summary": "Analyze Music Taste",
+        "description": "Analyze user's music taste with AI and return verdict.",
+        "operationId": "analyze_music_taste_api_v1_music_analyze_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MusicAnalysisResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/analysis/latest": {
+      "get": {
+        "tags": [
+          "music-analysis"
+        ],
+        "summary": "Get Latest Analysis",
+        "description": "Get user's most recent music analysis.",
+        "operationId": "get_latest_analysis_api_v1_music_analysis_latest_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MusicAnalysisResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get Latest Analysis Api V1 Music Analysis Latest Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/public/share/{share_token}": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Get Shared Analysis",
+        "description": "Get a shared music analysis by token.",
+        "operationId": "get_shared_analysis_api_v1_public_share__share_token__get",
+        "parameters": [
+          {
+            "name": "share_token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Share Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Root endpoint for health check.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Root  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "processing",
+          "completed",
+          "failed"
+        ],
+        "title": "AnalysisStatus",
+        "description": "Status values for music analysis background tasks."
+      },
+      "AnalysisStatusResponse": {
+        "properties": {
+          "analysis_id": {
+            "type": "integer",
+            "title": "Analysis Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalysisStatus"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "analysis_id",
+          "status",
+          "created_at"
+        ],
+        "title": "AnalysisStatusResponse",
+        "description": "Analysis status response for polling endpoint."
+      },
+      "BeginAnalysisResponse": {
+        "properties": {
+          "analysis_id": {
+            "type": "integer",
+            "title": "Analysis Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalysisStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "analysis_id",
+          "status"
+        ],
+        "title": "BeginAnalysisResponse",
+        "description": "Response for begin analysis endpoint."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MusicAnalysisResponse": {
+        "properties": {
+          "rating_text": {
+            "type": "string",
+            "title": "Rating Text"
+          },
+          "rating_description": {
+            "type": "string",
+            "title": "Rating Description"
+          },
+          "x_axis_pos": {
+            "type": "number",
+            "title": "X Axis Pos"
+          },
+          "y_axis_pos": {
+            "type": "number",
+            "title": "Y Axis Pos"
+          },
+          "share_token": {
+            "type": "string",
+            "title": "Share Token"
+          },
+          "analyzed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Analyzed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rating_text",
+          "rating_description",
+          "x_axis_pos",
+          "y_axis_pos",
+          "share_token",
+          "analyzed_at"
+        ],
+        "title": "MusicAnalysisResponse",
+        "description": "Music analysis API response model."
+      },
+      "PublicAnalysisResponse": {
+        "properties": {
+          "rating_text": {
+            "type": "string",
+            "title": "Rating Text"
+          },
+          "rating_description": {
+            "type": "string",
+            "title": "Rating Description"
+          },
+          "x_axis_pos": {
+            "type": "number",
+            "title": "X Axis Pos"
+          },
+          "y_axis_pos": {
+            "type": "number",
+            "title": "Y Axis Pos"
+          },
+          "analyzed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Analyzed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rating_text",
+          "rating_description",
+          "x_axis_pos",
+          "y_axis_pos",
+          "analyzed_at"
+        ],
+        "title": "PublicAnalysisResponse",
+        "description": "Public analysis response model (no sensitive data)."
+      },
+      "UserRead": {
+        "properties": {
+          "spotify_id": {
+            "type": "string",
+            "title": "Spotify Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spotify_id",
+          "email",
+          "id",
+          "created_at",
+          "is_active"
+        ],
+        "title": "UserRead",
+        "description": "User read model (public)."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

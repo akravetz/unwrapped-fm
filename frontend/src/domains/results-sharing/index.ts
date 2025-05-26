@@ -1,1 +1,1 @@
-export { ResultsScreen } from './components/ResultsScreen';
+export * from './components/ResultsScreen'

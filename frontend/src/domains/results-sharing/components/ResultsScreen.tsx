@@ -1,295 +1,173 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
-  Container,
   Box,
+  Container,
   Typography,
-  Stack,
   Card,
   CardContent,
+  Stack,
   Button,
-  Slider,
-  Chip,
-  IconButton
-} from '@mui/material';
-import { Share, Twitter, Facebook, Link as LinkIcon } from '@mui/icons-material';
-import { MusicAnalysisResponse } from '@/domains/authentication/types/auth.types';
+  IconButton,
+  Snackbar,
+  Alert,
+  Divider,
+  Chip
+} from '@mui/material'
+import ShareIcon from '@mui/icons-material/Share'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import { AnalysisResult } from '@/domains/music-analysis/types/music.types'
 
 interface ResultsScreenProps {
-  analysis: MusicAnalysisResponse | null;
-  onAnalyzeAgain?: () => void;
-  onStartOver?: () => void;
+  result: AnalysisResult
+  onShare?: (shareUrl: string) => void
 }
 
-export function ResultsScreen({ analysis, onAnalyzeAgain, onStartOver }: ResultsScreenProps) {
-  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+export function ResultsScreen({ result, onShare }: ResultsScreenProps) {
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [showCopySuccess, setShowCopySuccess] = useState(false)
 
-  if (!analysis) {
-    return (
-      <Container maxWidth="sm">
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="100vh"
-        >
-          <Typography variant="h6" color="text.secondary">
-            Loading results...
-          </Typography>
-        </Box>
-      </Container>
-    );
+  const handleShare = async () => {
+    if (result.share_token) {
+      const url = `${window.location.origin}/shared/${result.share_token}`
+      setShareUrl(url)
+      onShare?.(url)
+    }
   }
 
-  // Convert analysis data to display format
-  const rating = {
-    category: analysis.rating_text,
-    score: Math.round(((analysis.x_axis_pos + 1) / 2) * 100), // Convert -1,1 to 0-100
-    description: analysis.rating_description
-  };
-
-  const handleShare = (platform: 'twitter' | 'facebook' | 'copy') => {
-    const shareText = `I just got rated "${rating.category}" on unwrapped.fm! ${rating.description}`;
-    const shareUrl = `https://unwrapped.fm/share/${analysis.share_token}`;
-
-    switch (platform) {
-      case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`);
-        break;
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`);
-        break;
-      case 'copy':
-        navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-        // Could add a toast notification here
-        break;
+  const handleCopyUrl = async () => {
+    if (shareUrl) {
+      await navigator.clipboard.writeText(shareUrl)
+      setShowCopySuccess(true)
     }
-    setShareMenuOpen(false);
-  };
+  }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return '#1DB954'; // Green
-    if (score >= 60) return '#FF9500'; // Orange
-    if (score >= 40) return '#E22134'; // Red
-    return '#B3B3B3'; // Gray
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) return 'Critically Acclaimed';
-    if (score >= 60) return 'Critically Concerning';
-    if (score >= 40) return 'Obscure on Purpose';
-    return 'Algorithm Victim';
-  };
+  const formatTimeRange = (timeRange: string) => {
+    switch (timeRange) {
+      case 'short_term': return 'Last 4 weeks'
+      case 'medium_term': return 'Last 6 months'
+      case 'long_term': return 'All time'
+      default: return timeRange
+    }
+  }
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-        py={4}
-      >
-        <Card
-          sx={{
-            width: '100%',
-            maxWidth: 500,
-            p: 4,
-            textAlign: 'center',
-            position: 'relative'
-          }}
-        >
-          <CardContent>
-            <Stack spacing={4} alignItems="center">
-              {/* Note: Profile picture removed since analysis doesn't include user data */}
-
-              {/* Title */}
-              <Typography
-                variant="h5"
-                component="h1"
-                sx={{
-                  fontWeight: 700,
-                  color: 'text.primary'
-                }}
-              >
-                PitchFork music rating:
-              </Typography>
-
-              {/* Rating Category */}
-              <Typography
-                variant="h3"
-                component="h2"
-                sx={{
-                  fontWeight: 800,
-                  color: getScoreColor(rating.score),
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em'
-                }}
-              >
-                {rating.category}
-              </Typography>
-
-              {/* Description */}
-              <Typography
-                variant="body1"
-                color="text.primary"
-                sx={{
-                  lineHeight: 1.6,
-                  fontStyle: 'italic',
-                  maxWidth: '400px'
-                }}
-              >
-                {rating.description}
-              </Typography>
-
-              {/* Score Slider */}
-              <Box sx={{ width: '100%', maxWidth: '300px', px: 2 }}>
-                <Stack spacing={2}>
-                  <Typography variant="body2" color="text.secondary">
-                    Taste Score
-                  </Typography>
-                  <Slider
-                    value={rating.score}
-                    min={0}
-                    max={100}
-                    disabled
-                    sx={{
-                      '& .MuiSlider-thumb': {
-                        backgroundColor: getScoreColor(rating.score),
-                      },
-                      '& .MuiSlider-track': {
-                        backgroundColor: getScoreColor(rating.score),
-                      },
-                      '& .MuiSlider-rail': {
-                        backgroundColor: '#383838',
-                      }
-                    }}
-                  />
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="caption" color="text.secondary">
-                      Algorithm Victim
+    <Container maxWidth="md">
+      <Box sx={{ py: 4 }}>
+        <Stack spacing={4}>
+          <Card elevation={0}>
+            <CardContent sx={{ p: 4 }}>
+              <Stack spacing={3}>
+                <Stack direction="row" justifyContent="space-between" alignItems="start">
+                  <Box>
+                    <Typography variant="h4" component="h1" gutterBottom>
+                      Your Music Analysis
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Critically Acclaimed
-                    </Typography>
+                    <Chip
+                      label={formatTimeRange(result.time_range)}
+                      variant="outlined"
+                      size="small"
+                    />
                   </Box>
+
+                  {result.share_token && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<ShareIcon />}
+                      onClick={handleShare}
+                    >
+                      Share Results
+                    </Button>
+                  )}
                 </Stack>
-              </Box>
 
-              {/* Score Label */}
-              <Chip
-                label={getScoreLabel(rating.score)}
-                sx={{
-                  backgroundColor: getScoreColor(rating.score),
-                  color: 'white',
-                  fontWeight: 600
-                }}
-              />
-
-              {/* Share Button */}
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<Share />}
-                onClick={() => setShareMenuOpen(!shareMenuOpen)}
-                sx={{
-                  py: 1.5,
-                  px: 4,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  borderRadius: 3,
-                }}
-              >
-                Share Results
-              </Button>
-
-              {/* Share Menu */}
-              {shareMenuOpen && (
-                <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                  <IconButton
-                    onClick={() => handleShare('twitter')}
-                    sx={{
-                      backgroundColor: '#1DA1F2',
-                      color: 'white',
-                      '&:hover': { backgroundColor: '#1a91da' }
-                    }}
-                  >
-                    <Twitter />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleShare('facebook')}
-                    sx={{
-                      backgroundColor: '#4267B2',
-                      color: 'white',
-                      '&:hover': { backgroundColor: '#365899' }
-                    }}
-                  >
-                    <Facebook />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleShare('copy')}
-                    sx={{
-                      backgroundColor: '#383838',
-                      color: 'white',
-                      '&:hover': { backgroundColor: '#484848' }
-                    }}
-                  >
-                    <LinkIcon />
-                  </IconButton>
-                </Stack>
-              )}
-
-              {/* Website URL */}
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  fontSize: '0.875rem',
-                  mt: 3
-                }}
-              >
-                https://unwrapped.fm/share/{analysis.share_token}
-              </Typography>
-
-              {/* Action Buttons */}
-              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                {onAnalyzeAgain && (
-                  <Button
-                    variant="contained"
-                    onClick={onAnalyzeAgain}
-                    sx={{
-                      textTransform: 'none',
-                      backgroundColor: 'primary.main',
-                      '&:hover': {
-                        backgroundColor: 'primary.dark'
-                      }
-                    }}
-                  >
-                    Analyze Again
-                  </Button>
+                {shareUrl && (
+                  <Card variant="outlined" sx={{ bgcolor: 'background.paper' }}>
+                    <CardContent sx={{ p: 2 }}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
+                          {shareUrl}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={handleCopyUrl}
+                          title="Copy link"
+                        >
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    </CardContent>
+                  </Card>
                 )}
-                <Button
-                  variant="outlined"
-                  onClick={onStartOver}
-                  sx={{
-                    textTransform: 'none',
-                    borderColor: 'text.secondary',
-                    color: 'text.secondary',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      color: 'primary.main'
-                    }
-                  }}
-                >
-                  Judge Someone Else
-                </Button>
+
+                <Divider />
+
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    AI Insights
+                  </Typography>
+                  <Stack spacing={2}>
+                    {result.insights?.map((insight, index) => (
+                      <Card key={index} variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography variant="body1">
+                            {insight}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    )) || (
+                      <Typography variant="body2" color="text.secondary">
+                        No insights available for this analysis.
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+
+                {result.analysis_data && (
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      Analysis Data
+                    </Typography>
+                    <Card variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Typography
+                          variant="body2"
+                          component="pre"
+                          sx={{
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre-wrap',
+                            overflow: 'auto',
+                            maxHeight: 400
+                          }}
+                        >
+                          {JSON.stringify(result.analysis_data, null, 2)}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Box>
+                )}
+
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Analysis completed on {new Date(result.created_at).toLocaleDateString()}
+                  </Typography>
+                </Box>
               </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Stack>
       </Box>
+
+      <Snackbar
+        open={showCopySuccess}
+        autoHideDuration={3000}
+        onClose={() => setShowCopySuccess(false)}
+      >
+        <Alert severity="success" onClose={() => setShowCopySuccess(false)}>
+          Share link copied to clipboard!
+        </Alert>
+      </Snackbar>
     </Container>
-  );
+  )
 }

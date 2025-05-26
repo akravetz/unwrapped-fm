@@ -1,39 +1,27 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { useAuth } from '@/domains/authentication';
-import { LoadingScreen } from '@/domains/music-analysis';
-import { ResultsScreen } from '@/domains/results-sharing';
-import { LoginScreen } from './LoginScreen';
-import { useAppNavigation } from '../hooks/useAppNavigation';
+import React from 'react'
+import { useAuth } from '@/domains/authentication/context/AuthContext'
+import { useAppNavigation } from '@/shared/hooks/useAppNavigation'
+import { LoginScreen } from './LoginScreen'
+import { LoadingScreen } from '@/domains/music-analysis/components/LoadingScreen'
 
-export function AppRouter() {
-  const { isAuthenticated, user, isLoading, latestAnalysis } = useAuth();
-  const { currentScreen, navigateToScreen } = useAppNavigation({
-    isAuthenticated,
-    user,
-    latestAnalysis,
-    isLoading
-  });
+interface AppRouterProps {
+  children: React.ReactNode
+}
 
-  switch (currentScreen) {
-    case 'loading':
-      return (
-        <LoadingScreen
-          onComplete={() => navigateToScreen('results')}
-        />
-      );
+export function AppRouter({ children }: AppRouterProps) {
+  const { isAuthenticated, isLoading } = useAuth()
 
-    case 'results':
-      return (
-        <ResultsScreen
-          analysis={latestAnalysis}
-          onAnalyzeAgain={() => navigateToScreen('loading')}
-          onStartOver={() => navigateToScreen('login')}
-        />
-      );
+  useAppNavigation()
 
-    default:
-      return <LoginScreen />;
+  if (isLoading) {
+    return <LoadingScreen message="Loading..." />
   }
+
+  if (!isAuthenticated) {
+    return <LoginScreen />
+  }
+
+  return <>{children}</>
 }
