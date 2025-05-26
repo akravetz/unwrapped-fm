@@ -112,6 +112,10 @@ npm run dev    # Dev server
 npm run build  # Production build
 ```
 
+### IMPORTANT
+ALWAYS CONFIRM THE DIRECTORY YOU THINK YOU ARE WORKING IN BEFORE CREATING FILES.  ALL FRONTEND CODE SHOULD BE IN THE `frontend/` DIRECTORY. ALL BACKEND CODE SHOULD BE IN THE `backend/` directory
+
+
 ## Next Phase Preparation (Phase 3: Music Data)
 
 ### Spotify API Integration
