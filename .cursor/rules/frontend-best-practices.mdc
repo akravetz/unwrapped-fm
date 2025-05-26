@@ -1,0 +1,1237 @@
+# Frontend Development Best Practices
+
+## Overview
+
+This document outlines best practices for frontend development in our Next.js 15.3.2 application, emphasizing modern patterns, performance, accessibility, and maintainability.
+
+## Table of Contents
+
+1. [Data Fetching Best Practices](#data-fetching-best-practices)
+2. [Server-Side Rendering (SSR) Best Practices](#server-side-rendering-ssr-best-practices)
+3. [Testing Best Practices](#testing-best-practices)
+4. [Material Design 3 Implementation](#material-design-3-implementation)
+5. [TypeScript Best Practices](#typescript-best-practices)
+6. [Performance Optimization](#performance-optimization)
+7. [Accessibility Standards](#accessibility-standards)
+8. [Security Considerations](#security-considerations)
+9. [Code Organization](#code-organization)
+
+---
+
+## Data Fetching Best Practices
+
+### Server Components First Approach
+
+**✅ PREFERRED: Server Components for Data Fetching**
+```typescript
+// app/dashboard/page.tsx
+async function DashboardPage() {
+  // Fetch data directly in Server Components
+  const user = await fetch('/api/user', {
+    cache: 'force-cache', // Static generation
+  }).then(res => res.json());
+
+  const analytics = await fetch('/api/analytics', {
+    cache: 'no-store', // Dynamic rendering
+  }).then(res => res.json());
+
+  return (
+    <div>
+      <UserProfile user={user} />
+      <AnalyticsDashboard data={analytics} />
+    </div>
+  );
+}
+```
+
+**❌ AVOID: Client-side fetching for initial data**
+```typescript
+// Don't do this for initial page data
+function DashboardPage() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/user').then(res => res.json()).then(setUser);
+  }, []);
+
+  if (!user) return <Loading />;
+  return <UserProfile user={user} />;
+}
+```
+
+### Streaming and Suspense Patterns
+
+**✅ CORRECT: Use Suspense for progressive loading**
+```typescript
+// app/dashboard/page.tsx
+import { Suspense } from 'react';
+
+export default function DashboardPage() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Suspense fallback={<UserProfileSkeleton />}>
+        <UserProfile />
+      </Suspense>
+      <Suspense fallback={<AnalyticsChartSkeleton />}>
+        <AnalyticsChart />
+      </Suspense>
+    </div>
+  );
+}
+
+// Separate async components
+async function UserProfile() {
+  const user = await fetch('/api/user');
+  return <div>{/* User profile content */}</div>;
+}
+
+async function AnalyticsChart() {
+  const data = await fetch('/api/analytics');
+  return <div>{/* Analytics content */}</div>;
+}
+```
+
+### Caching Strategies
+
+**✅ CORRECT: Strategic cache configuration**
+```typescript
+// Static data (revalidate daily)
+const staticData = await fetch('/api/config', {
+  next: { revalidate: 86400 } // 24 hours
+});
+
+// Dynamic data (always fresh)
+const liveData = await fetch('/api/live-stats', {
+  cache: 'no-store'
+});
+
+// ISR pattern (revalidate on demand)
+const contentData = await fetch('/api/content', {
+  next: { revalidate: 3600, tags: ['content'] }
+});
+```
+
+### Error Handling and Loading States
+
+**✅ CORRECT: Comprehensive error boundaries**
+```typescript
+// app/dashboard/error.tsx
+'use client';
+
+export default function DashboardError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <Alert severity="error">
+      <AlertTitle>Something went wrong</AlertTitle>
+      <Typography variant="bodyMedium">
+        {error.message || 'Failed to load dashboard data'}
+      </Typography>
+      <Button onClick={reset} variant="outlined">
+        Try again
+      </Button>
+    </Alert>
+  );
+}
+
+// app/dashboard/loading.tsx
+export default function DashboardLoading() {
+  return (
+    <Box sx={{ padding: 3 }}>
+      <Skeleton variant="rectangular" height={200} sx={{ mb: 2 }} />
+      <Skeleton variant="text" width="60%" />
+      <Skeleton variant="text" width="40%" />
+    </Box>
+  );
+}
+```
+
+### Client-Side Data Fetching (When Necessary)
+
+**✅ CORRECT: SSR-safe client data fetching**
+```typescript
+'use client';
+
+function useApiClient(): AuthenticatedApiClient | null {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null; // SSR-safe
+
+  return createApiClient();
+}
+
+function UserDashboard() {
+  const apiClient = useApiClient();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!apiClient) return;
+
+    setLoading(true);
+    apiClient.getUserData()
+      .then(setData)
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, [apiClient]);
+
+  if (!apiClient) return null; // SSR-safe
+  if (loading) return <CircularProgress />;
+  if (error) return <ErrorAlert error={error} />;
+
+  return <UserDataDisplay data={data} />;
+}
+```
+
+---
+
+## Server-Side Rendering (SSR) Best Practices
+
+### Component Architecture
+
+**✅ CORRECT: Server Component by default**
+```typescript
+// Server Component (default)
+async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await getProduct(params.id);
+
+  return (
+    <div>
+      <ProductHeader product={product} />
+      <ProductDetails product={product} />
+      <ClientInteractiveSection productId={product.id} />
+    </div>
+  );
+}
+
+// Client Component only when needed
+'use client';
+function ClientInteractiveSection({ productId }: { productId: string }) {
+  const [liked, setLiked] = useState(false);
+
+  return (
+    <Button onClick={() => setLiked(!liked)}>
+      {liked ? 'Unlike' : 'Like'}
+    </Button>
+  );
+}
+```
+
+### SSR-Compatible Patterns
+
+**✅ CORRECT: Avoid browser-only APIs in SSR**
+```typescript
+// ❌ WRONG: Direct browser API usage
+function MyComponent() {
+  const width = window.innerWidth; // Error during SSR
+  return <div>Width: {width}</div>;
+}
+
+// ✅ CORRECT: SSR-safe browser API usage
+'use client';
+function MyComponent() {
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => setWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  return <div>Width: {width || 'Loading...'}</div>;
+}
+```
+
+### Hydration Considerations
+
+**✅ CORRECT: Prevent hydration mismatches**
+```typescript
+'use client';
+function ClientOnlyComponent() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    // Return same content as server would render
+    return <div>Loading...</div>;
+  }
+
+  // Client-specific content
+  return <div>Client-side content: {Date.now()}</div>;
+}
+```
+
+### SEO Optimization
+
+**✅ CORRECT: Metadata generation**
+```typescript
+// app/products/[id]/page.tsx
+import type { Metadata } from 'next';
+
+export async function generateMetadata(
+  { params }: { params: { id: string } }
+): Promise<Metadata> {
+  const product = await getProduct(params.id);
+
+  return {
+    title: `${product.name} | Our Store`,
+    description: product.description,
+    openGraph: {
+      title: product.name,
+      description: product.description,
+      images: [product.image],
+    },
+  };
+}
+
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await getProduct(params.id);
+  return <ProductDisplay product={product} />;
+}
+```
+
+### Static Generation vs SSR
+
+**✅ CORRECT: Choose appropriate rendering strategy**
+```typescript
+// Static Generation (default)
+export default async function BlogPost({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  return <Article post={post} />;
+}
+
+// ISR (Incremental Static Regeneration)
+export const revalidate = 3600; // Revalidate every hour
+
+// Dynamic rendering (SSR)
+export const dynamic = 'force-dynamic';
+
+// Static paths generation
+export async function generateStaticParams() {
+  const posts = await getAllPosts();
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+```
+
+---
+
+## Testing Best Practices
+
+### Unit Testing Setup
+
+**✅ CORRECT: Jest/Vitest configuration**
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
+});
+
+// src/test/setup.ts
+import '@testing-library/jest-dom';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+### Component Testing
+
+**✅ CORRECT: Testing React components**
+```typescript
+// src/components/__tests__/UserProfile.test.tsx
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import UserProfile from '../UserProfile';
+
+describe('UserProfile', () => {
+  it('renders user information correctly', () => {
+    const user = {
+      name: 'John Doe',
+      email: 'john@example.com',
+      avatar: '/avatar.jpg',
+    };
+
+    render(<UserProfile user={user} />);
+
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
+    expect(screen.getByText('john@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /john doe/i })).toHaveAttribute(
+      'src',
+      '/avatar.jpg'
+    );
+  });
+
+  it('handles missing avatar gracefully', () => {
+    const user = {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+    };
+
+    render(<UserProfile user={user} />);
+
+    expect(screen.getByText('JD')).toBeInTheDocument(); // Initials fallback
+  });
+});
+```
+
+### Testing Server Components
+
+**✅ CORRECT: Testing async Server Components**
+```typescript
+// src/app/__tests__/page.test.tsx
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import HomePage from '../page';
+
+// Mock the async data fetching
+vi.mock('../lib/api', () => ({
+  getHomePageData: vi.fn().mockResolvedValue({
+    title: 'Welcome',
+    content: 'Home page content',
+  }),
+}));
+
+describe('HomePage', () => {
+  it('renders home page content', async () => {
+    const HomePageResolved = await HomePage();
+    render(HomePageResolved);
+
+    expect(screen.getByText('Welcome')).toBeInTheDocument();
+    expect(screen.getByText('Home page content')).toBeInTheDocument();
+  });
+});
+```
+
+### Integration Testing
+
+**✅ CORRECT: API route testing**
+```typescript
+// src/app/api/__tests__/users.test.ts
+import { describe, it, expect } from 'vitest';
+import { GET, POST } from '../users/route';
+import { NextRequest } from 'next/server';
+
+describe('/api/users', () => {
+  it('GET returns users list', async () => {
+    const request = new NextRequest('http://localhost:3000/api/users');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(data.users)).toBe(true);
+  });
+
+  it('POST creates new user', async () => {
+    const userData = {
+      name: 'Test User',
+      email: 'test@example.com',
+    };
+
+    const request = new NextRequest('http://localhost:3000/api/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.user.name).toBe(userData.name);
+    expect(data.user.email).toBe(userData.email);
+  });
+});
+```
+
+### E2E Testing with Playwright
+
+**✅ CORRECT: End-to-end testing setup**
+```typescript
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+
+// e2e/auth.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Authentication', () => {
+  test('user can log in and access dashboard', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('[data-testid="email"]', 'test@example.com');
+    await page.fill('[data-testid="password"]', 'password123');
+    await page.click('[data-testid="login-button"]');
+
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.locator('[data-testid="user-menu"]')).toBeVisible();
+  });
+
+  test('shows error for invalid credentials', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.fill('[data-testid="email"]', 'invalid@example.com');
+    await page.fill('[data-testid="password"]', 'wrongpassword');
+    await page.click('[data-testid="login-button"]');
+
+    await expect(page.locator('[role="alert"]')).toContainText(
+      'Invalid credentials'
+    );
+  });
+});
+```
+
+### Testing Hooks and Utilities
+
+**✅ CORRECT: Custom hook testing**
+```typescript
+// src/hooks/__tests__/useApiClient.test.ts
+import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { useApiClient } from '../useApiClient';
+
+describe('useApiClient', () => {
+  it('returns null during SSR', () => {
+    const { result } = renderHook(() => useApiClient());
+    expect(result.current).toBeNull();
+  });
+
+  it('returns api client after hydration', async () => {
+    const { result } = renderHook(() => useApiClient());
+
+    await waitFor(() => {
+      expect(result.current).not.toBeNull();
+    });
+
+    expect(result.current).toHaveProperty('getCurrentUser');
+    expect(result.current).toHaveProperty('updateProfile');
+  });
+});
+```
+
+---
+
+## Material Design 3 Implementation
+
+### Component Standards
+
+**✅ CORRECT: MD3 component usage**
+```typescript
+import {
+  Button,
+  Typography,
+  Box,
+  Alert,
+  IconButton,
+  Card,
+  CardContent
+} from '@mui/material';
+
+function ProductCard({ product }: { product: Product }) {
+  return (
+    <Card elevation={1} sx={{ borderRadius: 3 }}>
+      <CardContent sx={{ padding: 3 }}>
+        <Typography variant="headlineSmall" component="h2" gutterBottom>
+          {product.name}
+        </Typography>
+        <Typography variant="bodyMedium" color="text.secondary" paragraph>
+          {product.description}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+          <Button variant="contained" color="primary">
+            Add to Cart
+          </Button>
+          <Button variant="outlined" color="secondary">
+            View Details
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### Typography System
+
+**✅ CORRECT: MD3 typography variants**
+```typescript
+// Use semantic typography variants
+<Typography variant="displayLarge">Hero Title</Typography>
+<Typography variant="headlineLarge">Page Title</Typography>
+<Typography variant="headlineMedium">Section Title</Typography>
+<Typography variant="titleLarge">Card Title</Typography>
+<Typography variant="bodyLarge">Important content</Typography>
+<Typography variant="bodyMedium">Regular content</Typography>
+<Typography variant="labelLarge">Button text</Typography>
+
+// ❌ AVOID: Custom font sizes
+<Typography sx={{ fontSize: '24px' }}>Title</Typography>
+```
+
+### Spacing and Layout
+
+**✅ CORRECT: 4dp spacing system**
+```typescript
+// Use theme spacing (4dp multiples)
+<Box sx={{
+  padding: 3,        // 12px
+  margin: 2,         // 8px
+  gap: 1,           // 4px
+  borderRadius: 2,   // 8px
+}}>
+  Content
+</Box>
+
+// ❌ AVOID: Arbitrary spacing
+<Box sx={{ padding: '15px', margin: '7px' }}>
+  Content
+</Box>
+```
+
+### Color System
+
+**✅ CORRECT: Semantic color roles**
+```typescript
+// Use semantic colors from theme
+<Button color="primary">Primary Action</Button>
+<Alert severity="error">Error message</Alert>
+<Typography color="text.secondary">Secondary text</Typography>
+
+// Custom colors using theme palette
+<Box sx={{
+  backgroundColor: 'primary.main',
+  color: 'primary.contrastText',
+}}>
+  Content
+</Box>
+
+// ❌ AVOID: Hardcoded colors
+<Button sx={{ backgroundColor: '#1976d2' }}>Button</Button>
+```
+
+---
+
+## TypeScript Best Practices
+
+### Modern Type Definitions
+
+**✅ CORRECT: Modern TypeScript patterns**
+```typescript
+// Use union types instead of Optional
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string; // Optional property
+  role: 'admin' | 'user' | 'moderator'; // Union type
+};
+
+// Use modern imports
+import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
+
+// Generic constraints
+interface ApiResponse<T> {
+  data: T;
+  status: 'success' | 'error';
+  message?: string;
+}
+
+// Utility types
+type UserUpdate = Partial<Pick<User, 'name' | 'email'>>;
+type UserPublic = Omit<User, 'email'>;
+```
+
+### Component Props Typing
+
+**✅ CORRECT: Comprehensive prop typing**
+```typescript
+interface UserProfileProps {
+  user: User;
+  onEdit?: (user: User) => void;
+  showEmail?: boolean;
+  className?: string;
+  children?: ReactNode;
+}
+
+function UserProfile({
+  user,
+  onEdit,
+  showEmail = false,
+  className,
+  children
+}: UserProfileProps) {
+  return (
+    <div className={className}>
+      <h2>{user.name}</h2>
+      {showEmail && <p>{user.email}</p>}
+      {onEdit && (
+        <Button onClick={() => onEdit(user)}>
+          Edit Profile
+        </Button>
+      )}
+      {children}
+    </div>
+  );
+}
+```
+
+### API Type Safety
+
+**✅ CORRECT: Type-safe API calls**
+```typescript
+// Generate types from OpenAPI schema
+import type { paths } from '@/types/api';
+
+type GetUserResponse = paths['/api/users/{id}']['get']['responses']['200']['content']['application/json'];
+type CreateUserRequest = paths['/api/users']['post']['requestBody']['content']['application/json'];
+
+async function getUser(id: number): Promise<GetUserResponse> {
+  const response = await fetch(`/api/users/${id}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+async function createUser(userData: CreateUserRequest): Promise<GetUserResponse> {
+  const response = await fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create user: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+```
+
+---
+
+## Performance Optimization
+
+### Code Splitting and Lazy Loading
+
+**✅ CORRECT: Strategic code splitting**
+```typescript
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+
+// Lazy load heavy components
+const HeavyChart = dynamic(() => import('./HeavyChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false, // Client-side only if needed
+});
+
+// Conditional loading
+const AdminPanel = dynamic(() => import('./AdminPanel'), {
+  loading: () => <div>Loading admin panel...</div>,
+});
+
+function Dashboard({ user }: { user: User }) {
+  return (
+    <div>
+      <UserProfile user={user} />
+      <Suspense fallback={<ChartSkeleton />}>
+        <HeavyChart />
+      </Suspense>
+      {user.role === 'admin' && (
+        <Suspense fallback={<div>Loading...</div>}>
+          <AdminPanel />
+        </Suspense>
+      )}
+    </div>
+  );
+}
+```
+
+### Image Optimization
+
+**✅ CORRECT: Next.js Image component**
+```typescript
+import Image from 'next/image';
+
+function ProductImage({ product }: { product: Product }) {
+  return (
+    <Image
+      src={product.image}
+      alt={product.name}
+      width={400}
+      height={300}
+      priority={product.featured} // LCP optimization
+      placeholder="blur"
+      blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+    />
+  );
+}
+```
+
+### Bundle Optimization
+
+**✅ CORRECT: Import optimization**
+```typescript
+// Tree-shakable imports
+import { Button, Typography } from '@mui/material';
+import { debounce } from 'lodash-es';
+
+// ❌ AVOID: Full library imports
+import * as MUI from '@mui/material';
+import _ from 'lodash';
+
+// Dynamic imports for large libraries
+async function loadChartLibrary() {
+  const { Chart } = await import('chart.js');
+  return Chart;
+}
+```
+
+---
+
+## Accessibility Standards
+
+### WCAG 2.1 AA Compliance
+
+**✅ CORRECT: Accessible components**
+```typescript
+function SearchForm({ onSearch }: { onSearch: (query: string) => void }) {
+  const [query, setQuery] = useState('');
+  const searchId = useId();
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onSearch(query); }}>
+      <label htmlFor={searchId}>
+        Search products
+      </label>
+      <input
+        id={searchId}
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        aria-describedby={`${searchId}-help`}
+        required
+      />
+      <div id={`${searchId}-help`} className="sr-only">
+        Enter keywords to search for products
+      </div>
+      <button type="submit" aria-label="Search products">
+        <SearchIcon aria-hidden="true" />
+        Search
+      </button>
+    </form>
+  );
+}
+```
+
+### Keyboard Navigation
+
+**✅ CORRECT: Keyboard accessible components**
+```typescript
+function DropdownMenu({ items }: { items: MenuItem[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    switch (e.key) {
+      case 'Escape':
+        setIsOpen(false);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex(prev =>
+          prev < items.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex(prev =>
+          prev > 0 ? prev - 1 : items.length - 1
+        );
+        break;
+      case 'Enter':
+      case ' ':
+        if (focusedIndex >= 0) {
+          items[focusedIndex].onClick();
+          setIsOpen(false);
+        }
+        break;
+    }
+  };
+
+  return (
+    <div onKeyDown={handleKeyDown}>
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        Menu
+      </button>
+      {isOpen && (
+        <ul role="menu">
+          {items.map((item, index) => (
+            <li
+              key={item.id}
+              role="menuitem"
+              tabIndex={focusedIndex === index ? 0 : -1}
+              onClick={item.onClick}
+            >
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+```
+
+### Screen Reader Support
+
+**✅ CORRECT: ARIA labels and live regions**
+```typescript
+function LoadingButton({
+  loading,
+  children,
+  ...props
+}: ButtonProps & { loading: boolean }) {
+  return (
+    <Button
+      {...props}
+      disabled={loading || props.disabled}
+      aria-describedby={loading ? 'loading-status' : undefined}
+    >
+      {loading && (
+        <>
+          <CircularProgress size={16} aria-hidden="true" />
+          <span id="loading-status" className="sr-only">
+            Loading, please wait
+          </span>
+        </>
+      )}
+      {children}
+    </Button>
+  );
+}
+
+// Live region for dynamic updates
+function StatusMessage({ message, type }: { message: string; type: 'success' | 'error' }) {
+  return (
+    <div
+      role="status"
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
+    >
+      {message}
+    </div>
+  );
+}
+```
+
+---
+
+## Security Considerations
+
+### XSS Prevention
+
+**✅ CORRECT: Safe content rendering**
+```typescript
+import DOMPurify from 'isomorphic-dompurify';
+
+function UserGeneratedContent({ content }: { content: string }) {
+  // Sanitize HTML content
+  const sanitizedContent = DOMPurify.sanitize(content);
+
+  return (
+    <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
+  );
+}
+
+// ❌ AVOID: Unsanitized HTML
+function UnsafeContent({ content }: { content: string }) {
+  return <div dangerouslySetInnerHTML={{ __html: content }} />;
+}
+```
+
+### CSRF Protection
+
+**✅ CORRECT: CSRF token handling**
+```typescript
+// app/api/users/route.ts
+import { headers } from 'next/headers';
+
+export async function POST(request: Request) {
+  const headersList = headers();
+  const csrfToken = headersList.get('x-csrf-token');
+
+  if (!csrfToken || !validateCSRFToken(csrfToken)) {
+    return new Response('Invalid CSRF token', { status: 403 });
+  }
+
+  // Process request
+  const data = await request.json();
+  // ...
+}
+```
+
+### Content Security Policy
+
+**✅ CORRECT: CSP headers**
+```typescript
+// next.config.ts
+const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self'",
+              "connect-src 'self' https://api.example.com",
+            ].join('; '),
+          },
+        ],
+      },
+    ];
+  },
+};
+```
+
+---
+
+## Code Organization
+
+### File Structure
+
+```
+src/
+├── app/                    # App Router pages
+│   ├── (auth)/            # Route groups
+│   ├── api/               # API routes
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # Reusable UI components
+│   ├── ui/               # Basic UI components
+│   └── forms/            # Form components
+├── domains/              # Domain-specific code
+│   ├── auth/             # Authentication domain
+│   ├── user/             # User domain
+│   └── ui-foundation/    # UI foundation
+├── hooks/                # Custom React hooks
+├── lib/                  # Utility libraries
+├── types/                # TypeScript type definitions
+└── utils/                # Utility functions
+```
+
+### Component Organization
+
+**✅ CORRECT: Component structure**
+```typescript
+// components/UserProfile/index.ts
+export { default } from './UserProfile';
+export type { UserProfileProps } from './UserProfile';
+
+// components/UserProfile/UserProfile.tsx
+import { UserAvatar } from './UserAvatar';
+import { UserInfo } from './UserInfo';
+import { UserActions } from './UserActions';
+import type { User } from '@/types/user';
+
+export interface UserProfileProps {
+  user: User;
+  onEdit?: (user: User) => void;
+  showActions?: boolean;
+}
+
+export default function UserProfile({
+  user,
+  onEdit,
+  showActions = true
+}: UserProfileProps) {
+  return (
+    <Card>
+      <CardContent>
+        <UserAvatar user={user} />
+        <UserInfo user={user} />
+        {showActions && <UserActions user={user} onEdit={onEdit} />}
+      </CardContent>
+    </Card>
+  );
+}
+
+// components/UserProfile/UserProfile.test.tsx
+// components/UserProfile/UserProfile.stories.tsx (if using Storybook)
+```
+
+### Custom Hooks
+
+**✅ CORRECT: Reusable hook patterns**
+```typescript
+// hooks/useLocalStorage.ts
+import { useState, useEffect } from 'react';
+
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T
+): [T, (value: T) => void] {
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  useEffect(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        setStoredValue(JSON.parse(item));
+      }
+    } catch (error) {
+      console.error(`Error reading localStorage key "${key}":`, error);
+    }
+  }, [key]);
+
+  const setValue = (value: T) => {
+    try {
+      setStoredValue(value);
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Error setting localStorage key "${key}":`, error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+```
+
+---
+
+## Development Workflow
+
+### Package Scripts
+
+```json
+{
+  "scripts": {
+    "dev": "next dev --turbopack --port 5174",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  }
+}
+```
+
+### Quality Gates
+
+**✅ REQUIRED: Pre-commit checks**
+```bash
+# Run before committing
+npm run lint:fix
+npm run type-check
+npm run test
+npm run build
+```
+
+### Environment Configuration
+
+**✅ CORRECT: Environment variables**
+```typescript
+// lib/env.ts
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']),
+  NEXT_PUBLIC_API_URL: z.string().url(),
+  DATABASE_URL: z.string(),
+  JWT_SECRET: z.string().min(32),
+});
+
+export const env = envSchema.parse(process.env);
+```
+
+---
+
+## Conclusion
+
+This document provides comprehensive guidelines for frontend development in our Next.js application. Key principles:
+
+1. **Server-first approach**: Use Server Components by default
+2. **Type safety**: Comprehensive TypeScript usage
+3. **Accessibility**: WCAG 2.1 AA compliance
+4. **Performance**: Optimize for Core Web Vitals
+5. **Testing**: Comprehensive test coverage
+6. **Material Design 3**: Consistent UI patterns
+7. **Security**: XSS, CSRF, and CSP protection
+
+Regular review and updates of these practices ensure our codebase remains maintainable, performant, and accessible.

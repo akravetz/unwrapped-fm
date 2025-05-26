@@ -60,7 +60,73 @@ function MyComponent() {
 }
 ```
 
-## Background Task Architecture ✅ IMPLEMENTED NEW!
+## Material Design 3 UI Standards (MANDATORY) ⚠️ NEW!
+
+### ALWAYS Follow MD3 Guidelines
+- **MANDATORY**: All UI components MUST follow Material Design 3 specifications
+- **Reference Documents**: Use `frontend/src/domains/ui-foundation/guidelines/` as source of truth
+- **No Custom Patterns**: Use established MD3 patterns, don't invent new ones
+- **Accessibility First**: WCAG 2.1 AA compliance is non-negotiable
+
+#### Required MD3 Implementation Patterns
+```typescript
+// ✅ CORRECT: Use semantic color roles
+<Button color="primary">Primary Action</Button>
+<Alert severity="error">Error message</Alert>
+
+// ✅ CORRECT: Use MD3 typography variants
+<Typography variant="headlineLarge">Page Title</Typography>
+<Typography variant="bodyMedium">Content text</Typography>
+
+// ✅ CORRECT: Use 4dp spacing multiples
+<Box sx={{ padding: 2, margin: 3, gap: 1 }}>Content</Box>
+
+// ✅ CORRECT: Proper touch targets (48px minimum)
+<IconButton sx={{ width: 48, height: 48 }}>
+  <Icon />
+</IconButton>
+
+// ❌ INCORRECT: Don't use arbitrary values
+<Button sx={{ backgroundColor: '#1976d2' }}>Button</Button>
+<Typography sx={{ fontSize: '24px' }}>Header</Typography>
+<Box sx={{ padding: '15px' }}>Content</Box>
+```
+
+#### MD3 Component Standards
+- **Buttons**: Use filled (primary), outlined (secondary), text (tertiary) hierarchy
+- **Typography**: Follow complete MD3 type scale (Display, Headline, Title, Body, Label)
+- **Spacing**: Use 4dp base unit system consistently
+- **Colors**: Use semantic color roles, never literal color values
+- **Elevation**: Apply proper elevation levels for component hierarchy
+- **Focus**: Implement visible focus indicators for accessibility
+
+#### MD3 Accessibility Requirements
+- **Color Contrast**: 4.5:1 minimum for normal text, 3:1 for large text
+- **Touch Targets**: 44px minimum (48px recommended)
+- **Keyboard Navigation**: All interactive elements must be keyboard accessible
+- **ARIA Labels**: Proper semantic HTML and ARIA attributes
+- **Screen Readers**: Descriptive text and live regions for dynamic content
+
+#### MD3 Content Guidelines
+- **Clear Language**: Use simple, direct, action-oriented language
+- **Consistent Terminology**: Same terms throughout the application
+- **Helpful Errors**: Error messages must explain how to fix the issue
+- **Loading States**: Informative loading messages, not generic "Loading..."
+- **Empty States**: Helpful empty states with clear next actions
+
+### MD3 Implementation Checklist
+- [ ] Use semantic color roles from theme
+- [ ] Apply correct typography variants
+- [ ] Use 4dp spacing multiples
+- [ ] Implement proper elevation levels
+- [ ] Add visible focus indicators
+- [ ] Ensure 48px touch targets
+- [ ] Test keyboard navigation
+- [ ] Verify color contrast ratios
+- [ ] Add proper ARIA labels
+- [ ] Write clear, helpful content
+
+## Background Task Architecture ✅ IMPLEMENTED
 
 ### Background Task Patterns (Production Ready)
 - **Status-driven processing**: Use enum status fields (PENDING/PROCESSING/COMPLETED/FAILED)
@@ -190,19 +256,23 @@ npm run build  # Production build
 ### IMPORTANT
 ALWAYS CONFIRM THE DIRECTORY YOU THINK YOU ARE WORKING IN BEFORE CREATING FILES.  ALL FRONTEND CODE SHOULD BE IN THE `frontend/` DIRECTORY. ALL BACKEND CODE SHOULD BE IN THE `backend/` directory
 
+## Next Phase Preparation (Phase 4: UI Implementation)
 
-## Next Phase Preparation (Phase 3: Music Data)
+### Material Design 3 Integration
+- **Theme Configuration**: Implement complete MD3 design system
+- **Component Updates**: Refactor existing components to follow MD3 patterns
+- **Accessibility Implementation**: Apply WCAG 2.1 AA standards throughout
+- **Performance Optimization**: Optimize with MD3 best practices
 
-### Spotify API Integration
-- **Rate limiting**: Implement proper backoff strategies
-- **Data pagination**: Handle large music libraries efficiently
-- **Token refresh**: Automatic refresh of expired Spotify tokens
-- **Error handling**: Graceful degradation for API failures
+### Advanced UI Features
+- **Navigation Patterns**: Implement MD3 navigation components
+- **Error Handling**: Create proper error states following MD3 feedback patterns
+- **Loading States**: Enhanced loading indicators with MD3 progress components
+- **Responsive Design**: Mobile-first approach with MD3 breakpoints
 
-### Data Processing
-- **Async processing**: Use background tasks for heavy operations
-- **Caching strategy**: Cache frequently accessed music data
-- **Database design**: Efficient models for music data storage
+### Frontend Patterns IMPORTANT
+- Reference `frontend-best-practices.mdc` when designing frontend code
+- Reference the API client and types in `frontend/src/api` when you need to interact with the backend.
 
 You have two modes of operation:
 
