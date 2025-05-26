@@ -200,25 +200,7 @@ def mock_spotify_client():
             }
         ]
     }
-    mock.get_audio_features.return_value = {
-        "audio_features": [
-            {
-                "id": "track1",
-                "danceability": 0.7,
-                "energy": 0.8,
-                "key": 5,
-                "loudness": -5.0,
-                "mode": 1,
-                "speechiness": 0.05,
-                "acousticness": 0.2,
-                "instrumentalness": 0.0,
-                "liveness": 0.1,
-                "valence": 0.6,
-                "tempo": 120.0,
-                "time_signature": 4,
-            }
-        ]
-    }
+
     mock.get_track_details.return_value = {
         "tracks": [
             {

@@ -29,9 +29,6 @@ class SpotifyDataCollector:
             # Fetch recently played tracks
             await self._fetch_recently_played(access_token, user_id, music_data)
 
-            # Fetch audio features for all tracks
-            await self._fetch_audio_features(access_token, user_id, music_data)
-
             return music_data
 
         except Exception as e:
@@ -87,42 +84,3 @@ class SpotifyDataCollector:
                 self.logger, e, {"endpoint": "recently_played"}, user_id
             )
             music_data["recently_played"] = {"items": []}
-
-    async def _fetch_audio_features(
-        self, access_token: str, user_id: int, music_data: dict[str, Any]
-    ) -> None:
-        """Fetch audio features for all collected tracks."""
-        # Extract track IDs from all sources
-        track_ids = set()
-
-        # From top tracks
-        for time_range in ["short_term", "medium_term", "long_term"]:
-            tracks = music_data[f"top_tracks_{time_range}"].get("items", [])
-            track_ids.update(track["id"] for track in tracks)
-
-        # From recently played
-        recent_tracks = music_data["recently_played"].get("items", [])
-        track_ids.update(item["track"]["id"] for item in recent_tracks)
-
-        # Fetch audio features in batches (Spotify API limit is 100)
-        track_ids_list = list(track_ids)
-        audio_features: list[Any] = []
-
-        if track_ids_list:
-            for i in range(0, len(track_ids_list), 100):
-                batch = track_ids_list[i : i + 100]
-                try:
-                    batch_features = await self.spotify_client.get_audio_features(
-                        access_token, batch
-                    )
-                    audio_features.extend(batch_features.get("audio_features", []))
-                except Exception as e:
-                    log_error_with_context(
-                        self.logger,
-                        e,
-                        {"endpoint": "audio_features", "batch_number": i // 100 + 1},
-                        user_id,
-                    )
-                    # Continue with other batches
-
-        music_data["audio_features"] = audio_features  # type: ignore[assignment]

@@ -209,29 +209,6 @@ class SpotifyMusicClient:
             params=params,
         )
 
-    async def get_audio_features(
-        self,
-        access_token: str,
-        track_ids: list[str],
-    ) -> dict[str, Any]:
-        """Get audio features for tracks (batch up to 100)."""
-        if not track_ids:
-            return {"audio_features": []}
-
-        # Spotify allows up to 100 tracks per request
-        if len(track_ids) > 100:
-            track_ids = track_ids[:100]
-
-        headers = {"Authorization": f"Bearer {access_token}"}
-        params = {"ids": ",".join(track_ids)}
-
-        return await self._make_request(
-            method="GET",
-            url=f"{self.BASE_URL}/audio-features",
-            headers=headers,
-            params=params,
-        )
-
     async def get_track_details(
         self,
         access_token: str,

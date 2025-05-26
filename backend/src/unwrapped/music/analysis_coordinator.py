@@ -93,24 +93,8 @@ class AnalysisCoordinator:
         if all_popularities:
             avg_popularity = sum(all_popularities) / len(all_popularities)
 
-        # Analyze audio features
-        audio_features = music_data.get("audio_features", [])
-        avg_energy = 0
-        avg_valence = 0
-        avg_danceability = 0
-
-        if audio_features:
-            valid_features = [f for f in audio_features if f is not None]
-            if valid_features:
-                avg_energy = sum(f.get("energy", 0) for f in valid_features) / len(
-                    valid_features
-                )
-                avg_valence = sum(f.get("valence", 0) for f in valid_features) / len(
-                    valid_features
-                )
-                avg_danceability = sum(
-                    f.get("danceability", 0) for f in valid_features
-                ) / len(valid_features)
+        # Calculate genre diversity
+        genre_count = len(genres)
 
         # Enhanced fallback analysis logic
         if avg_popularity > 70:
@@ -138,21 +122,21 @@ class AnalysisCoordinator:
                 y_pos = 0.4
                 description = f"You've got good taste in finding hidden gems with your {avg_popularity:.0f} average popularity. You're like a musical archaeologist, digging up artists that deserve more recognition. Respect for not following the crowd."
         else:
-            if avg_energy > 0.7 and avg_danceability > 0.7:
-                rating_text = "PARTY ANIMAL"
-                x_pos = 0.3
+            if genre_count > 10:
+                rating_text = "GENRE HOPPER"
+                x_pos = 0.1
                 y_pos = 0.8
-                description = f"Your music taste is basically 'will this make me move?' With energy at {avg_energy:.1f} and danceability at {avg_danceability:.1f}, you're the person who turns every gathering into a dance party. Your Spotify is a pre-workout playlist that never ends."
-            elif avg_valence < 0.3:
-                rating_text = "EMO SADBOY"
+                description = f"You listen to {genre_count} different genres like you're trying to collect them all. Your music taste has more variety than a buffet restaurant. Are you having an identity crisis or just really indecisive?"
+            elif genre_count < 3:
+                rating_text = "ONE-TRACK MIND"
                 x_pos = -0.2
-                y_pos = -0.7
-                description = f"Your music taste is darker than your soul. With a happiness factor of {avg_valence:.1f}, your Spotify Wrapped probably comes with a mental health warning. You're the reason sad playlists exist."
+                y_pos = -0.4
+                description = f"With only {genre_count} genres in your rotation, you've found your lane and you're sticking to it. You're either incredibly focused or incredibly boring. We're leaning towards the latter."
             else:
                 rating_text = "BALANCED LISTENER"
                 x_pos = 0.0
                 y_pos = 0.1
-                description = "You're remarkably... balanced. Not too mainstream, not too hipster, not too happy, not too sad. You're the musical equivalent of vanilla ice cream - perfectly fine, but where's the excitement?"
+                description = f"You listen to {genre_count} genres with {total_tracks} tracks tracked. You're remarkably... balanced. Not too mainstream, not too hipster. You're the musical equivalent of vanilla ice cream - perfectly fine, but where's the excitement?"
 
         return {
             "rating_text": rating_text,

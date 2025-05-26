@@ -83,24 +83,20 @@ class MusicAnalysisAI:
             "total_unique_artists": 0,
             "genres": set(),
             "popularity_stats": {"avg": 0, "min": 100, "max": 0},
-            "audio_features": {
-                "avg_energy": 0,
-                "avg_valence": 0,
-                "avg_danceability": 0,
-                "avg_acousticness": 0,
-                "avg_instrumentalness": 0,
-                "avg_speechiness": 0,
-            },
+            "genre_diversity": 0,
+            "mainstream_score": 0,
             "time_range_analysis": {},
             "top_artists_by_time": {},
             "top_tracks_by_time": {},
             "recently_played_count": 0,
+            "artist_loyalty_score": 0,
         }
 
         # Analyze tracks and artists by time range
         track_ids = set()
         artist_ids = set()
         all_popularities = []
+        all_genres = set()
 
         for time_range in ["short_term", "medium_term", "long_term"]:
             tracks = music_data.get(f"top_tracks_{time_range}", {}).get("items", [])
@@ -135,7 +131,9 @@ class MusicAnalysisAI:
 
             for artist in artists:
                 artist_ids.add(artist.get("id", ""))
-                summary["genres"].update(artist.get("genres", []))
+                artist_genres = artist.get("genres", [])
+                all_genres.update(artist_genres)
+                summary["genres"].update(artist_genres)
 
         # Recently played analysis
         recent_tracks = music_data.get("recently_played", {}).get("items", [])
@@ -149,30 +147,35 @@ class MusicAnalysisAI:
             summary["popularity_stats"]["min"] = min(all_popularities)
             summary["popularity_stats"]["max"] = max(all_popularities)
 
-        # Audio features analysis
-        audio_features = music_data.get("audio_features", [])
-        valid_features = [f for f in audio_features if f is not None]
+        # Calculate genre diversity (number of unique genres)
+        summary["genre_diversity"] = len(all_genres)
 
-        if valid_features:
-            feature_keys = [
-                "energy",
-                "valence",
-                "danceability",
-                "acousticness",
-                "instrumentalness",
-                "speechiness",
-            ]
-            for key in feature_keys:
-                values = [
-                    f.get(key, 0) for f in valid_features if f.get(key) is not None
-                ]
-                if values:
-                    summary["audio_features"][f"avg_{key}"] = sum(values) / len(values)
+        # Calculate mainstream score (higher popularity = more mainstream)
+        if all_popularities:
+            summary["mainstream_score"] = summary["popularity_stats"]["avg"] / 100
 
-        # Final counts
+        # Calculate artist loyalty (how often same artists appear across time ranges)
+        artist_appearances = {}
+        for time_range in ["short_term", "medium_term", "long_term"]:
+            artists = music_data.get(f"top_artists_{time_range}", {}).get("items", [])
+            for artist in artists:
+                artist_id = artist.get("id", "")
+                if artist_id:
+                    artist_appearances[artist_id] = (
+                        artist_appearances.get(artist_id, 0) + 1
+                    )
+
+        # Artist loyalty score: percentage of artists that appear in multiple time ranges
+        if artist_appearances:
+            loyal_artists = sum(1 for count in artist_appearances.values() if count > 1)
+            summary["artist_loyalty_score"] = loyal_artists / len(artist_appearances)
+
+        # Set totals
         summary["total_unique_tracks"] = len(track_ids)
         summary["total_unique_artists"] = len(artist_ids)
-        summary["genres"] = list(summary["genres"])[:20]  # Top 20 genres
+
+        # Convert set to list for JSON serialization
+        summary["genres"] = list(summary["genres"])
 
         return summary
 
@@ -189,9 +192,9 @@ You will receive detailed music data and must return a JSON response with exactl
 Your analysis should consider:
 - Genre diversity and obscurity
 - Popularity patterns (mainstream vs underground)
-- Audio features (energy, mood, danceability)
+- Artist loyalty and exploration patterns
 - Listening consistency across time periods
-- Artist/track repetition patterns
+- Track/artist repetition patterns
 
 Be creative, funny, and slightly mean but not genuinely hurtful. Reference specific musical elements when possible.
 
@@ -218,11 +221,10 @@ POPULARITY STATS:
 - Average track popularity: {music_summary["popularity_stats"]["avg"]:.1f}/100
 - Range: {music_summary["popularity_stats"]["min"]}-{music_summary["popularity_stats"]["max"]}
 
-AUDIO CHARACTERISTICS:
-- Energy level: {music_summary["audio_features"]["avg_energy"]:.2f} (0=chill, 1=intense)
-- Happiness factor: {music_summary["audio_features"]["avg_valence"]:.2f} (0=sad, 1=happy)
-- Danceability: {music_summary["audio_features"]["avg_danceability"]:.2f} (0=not danceable, 1=very danceable)
-- Acousticness: {music_summary["audio_features"]["avg_acousticness"]:.2f} (0=electronic, 1=acoustic)
+MUSIC TASTE ANALYSIS:
+- Genre diversity: {music_summary["genre_diversity"]} unique genres
+- Mainstream score: {music_summary["mainstream_score"]:.2f} (0=underground, 1=mainstream)
+- Artist loyalty: {music_summary["artist_loyalty_score"]:.2f} (0=always exploring, 1=very loyal)
 
 LISTENING PATTERNS BY TIME PERIOD:"""
 

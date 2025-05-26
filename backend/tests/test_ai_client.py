@@ -51,16 +51,6 @@ class TestMusicAnalysisAI:
             "top_artists_medium_term": {"items": []},
             "top_artists_long_term": {"items": []},
             "recently_played": {"items": []},
-            "audio_features": [
-                {
-                    "energy": 0.8,
-                    "valence": 0.6,
-                    "danceability": 0.7,
-                    "acousticness": 0.2,
-                    "instrumentalness": 0.1,
-                    "speechiness": 0.05,
-                }
-            ],
         }
 
     @pytest.mark.asyncio
@@ -187,7 +177,8 @@ class TestMusicAnalysisAI:
         assert "pop" in summary["genres"]
         assert "indie" in summary["genres"]
         assert summary["popularity_stats"]["avg"] == 67.5  # (75 + 60) / 2
-        assert summary["audio_features"]["avg_energy"] == 0.8
+        assert summary["genre_diversity"] == 2  # pop and indie
+        assert summary["mainstream_score"] == 0.675  # 67.5 / 100
         assert summary["recently_played_count"] == 0
 
     def test_prepare_music_summary_empty_data(self, ai_client):
@@ -200,7 +191,6 @@ class TestMusicAnalysisAI:
             "top_artists_medium_term": {"items": []},
             "top_artists_long_term": {"items": []},
             "recently_played": {"items": []},
-            "audio_features": [],
         }
 
         summary = ai_client._prepare_music_summary(empty_data)
@@ -230,5 +220,6 @@ class TestMusicAnalysisAI:
         assert "Total unique artists: 1" in prompt
         assert "pop, indie" in prompt or "indie, pop" in prompt
         assert "Average track popularity: 67.5" in prompt
-        assert "Energy level: 0.80" in prompt
+        assert "Genre diversity: 2" in prompt
+        assert "Mainstream score: 0.68" in prompt
         assert "JSON format" in prompt
