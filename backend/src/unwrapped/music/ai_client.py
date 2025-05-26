@@ -40,7 +40,7 @@ class MusicAnalysisAI:
                 ],
                 response_format={"type": "json_object"},  # type: ignore[arg-type]
                 max_tokens=800,
-                temperature=0.8,  # Add some creativity for witty responses
+                temperature=0.9,  # Add some creativity for witty responses
             )
 
             # Parse the JSON response

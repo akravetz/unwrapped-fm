@@ -25,7 +25,7 @@ class MusicAnalysisResult(SQLModel, table=True):
     )  # UNIQUE CONSTRAINT: one analysis per user
 
     # Status tracking for background tasks
-    status: str = Field(default=AnalysisStatus.PENDING)
+    status: AnalysisStatus = Field(default=AnalysisStatus.PENDING)
     error_message: str | None = Field(default=None)
 
     # AI Analysis Results (nullable for pending state)
