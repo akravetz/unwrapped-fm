@@ -14,7 +14,7 @@ export class ApiClient {
   constructor() {
     // Use environment-based URL detection (SSR-safe)
     this.baseURL = process.env.NODE_ENV === 'production'
-      ?  process.env.NEXT_PUBLIC_API_URL
+      ?  process.env.NEXT_PUBLIC_API_URL?
       : 'https://127.0.0.1:8443/api/v1';
 
     this.client = axios.create({
