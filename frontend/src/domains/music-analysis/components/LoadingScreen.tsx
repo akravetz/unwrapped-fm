@@ -11,7 +11,7 @@ import {
   Fade
 } from '@mui/material';
 import { useAuth } from '@/domains/authentication';
-import apiClient from '@/lib/backend/apiClient';
+import { useApiClient } from '@/domains/authentication/hooks/useApiClient';
 
 const loadingMessages = [
   "Compiling a list of breakup songs you played ironically...",
@@ -29,6 +29,7 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const { refreshLatestAnalysis } = useAuth();
+  const apiClient = useApiClient();
   const [messageStates, setMessageStates] = useState<boolean[]>(
     new Array(loadingMessages.length).fill(false)
   );
@@ -62,6 +63,12 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   }, [analysisStarted]);
 
   const startAnalysis = async () => {
+    if (!apiClient) {
+      console.error('API client not available');
+      onComplete?.();
+      return;
+    }
+
     try {
       // Start the analysis in the background
       const analysisPromise = apiClient.analyzeMusic();
