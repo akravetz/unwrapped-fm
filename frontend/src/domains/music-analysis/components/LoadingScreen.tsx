@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Container,
@@ -9,8 +9,10 @@ import {
   CardContent,
   Stack,
   LinearProgress,
-  CircularProgress
+  CircularProgress,
+  Fade
 } from '@mui/material'
+import { COPY } from '@/lib/constants/copy'
 
 interface LoadingScreenProps {
   message?: string
@@ -19,10 +21,35 @@ interface LoadingScreenProps {
 }
 
 export function LoadingScreen({
-  message = 'Analyzing your music...',
+  message,
   progress,
   details = []
 }: LoadingScreenProps) {
+  const [visibleMessages, setVisibleMessages] = useState<string[]>([])
+
+  // Cycle through loading messages every second
+  useEffect(() => {
+    let messageIndex = 0
+
+    // Add the first message immediately
+    setVisibleMessages([COPY.LOADING.MESSAGES[0]])
+
+    const interval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % COPY.LOADING.MESSAGES.length
+
+      // Add the new message to visible messages
+      setVisibleMessages((prevMessages) => [
+        ...prevMessages,
+        COPY.LOADING.MESSAGES[messageIndex]
+      ])
+    }, COPY.LOADING.MESSAGE_DURATION)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Use custom messages if provided, otherwise use the cycling messages
+  const displayMessages = details.length > 0 ? details : visibleMessages
+
   return (
     <Container maxWidth="sm">
       <Box
@@ -40,7 +67,7 @@ export function LoadingScreen({
               <CircularProgress size={60} thickness={4} />
 
               <Typography variant="h5" component="h1">
-                {message}
+                {message || COPY.APP_NAME}
               </Typography>
 
               {progress !== undefined && (
@@ -56,28 +83,30 @@ export function LoadingScreen({
                 </Box>
               )}
 
-              {details.length > 0 && (
-                <Stack spacing={1} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    Current steps:
-                  </Typography>
-                  {details.map((detail, index) => (
-                    <Typography
-                      key={index}
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ fontStyle: 'italic' }}
-                    >
-                      • {detail}
-                    </Typography>
+              {displayMessages.length > 0 && (
+                <Stack spacing={1} alignItems="center" sx={{ minHeight: '200px' }}>
+                  {displayMessages.map((messageText, index) => (
+                    <Fade in={true} timeout={500} key={index}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          fontStyle: 'italic',
+                          opacity: index === displayMessages.length - 1 ? 1 : 0.7
+                        }}
+                      >
+                        {messageText}
+                      </Typography>
+                    </Fade>
                   ))}
                 </Stack>
               )}
 
-              <Typography variant="body2" color="text.secondary">
-                This may take a few minutes while we analyze your listening history
-                and generate insights.
-              </Typography>
+              {displayMessages.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  {COPY.LOADING.PROGRESS_DESCRIPTION}
+                </Typography>
+              )}
             </Stack>
           </CardContent>
         </Card>
