@@ -32,7 +32,7 @@ async def login() -> dict[str, str]:
     """Initiate Spotify OAuth flow."""
     try:
         auth_url = spotify_auth_client.get_auth_url()
-        return {"auth_url": auth_url}
+        return {"authorization_url": auth_url}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
