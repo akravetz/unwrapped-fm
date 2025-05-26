@@ -15,6 +15,7 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "pydantic>=2.11.5",
     "pydantic-settings>=2.9.1",
+    "pyrefly>=0.16.3",
     "python-jose[cryptography]>=3.4.0",
     "python-multipart>=0.0.20",
     "spotipy>=2.25.1",

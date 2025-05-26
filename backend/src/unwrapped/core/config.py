@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     spotify_redirect_uri: str = "https://127.0.0.1:8443/api/v1/auth/callback"
     frontend_url: str = "https://127.0.0.1:5174"
 
+    # AI Configuration (DeepSeek)
+    deepseek_api_key: str = "your_deepseek_api_key_here"
+    deepseek_base_url: str = "https://api.deepseek.com"
+
     # Production domain support
     environment: str = "development"  # development, staging, production
     production_domain: str = "unwrapped.fm"
