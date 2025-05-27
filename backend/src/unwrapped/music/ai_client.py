@@ -7,6 +7,7 @@ from openai import AsyncOpenAI
 
 from ..core.config import settings
 from ..core.exceptions import SpotifyAPIError
+from ..core.logging import get_logger
 
 
 class MusicAnalysisAI:
@@ -18,6 +19,7 @@ class MusicAnalysisAI:
             api_key=settings.deepseek_api_key,
             base_url=settings.deepseek_base_url,
         )
+        self.logger = get_logger(__name__)
 
     async def analyze_music_taste(self, music_data: dict[str, Any]) -> dict[str, Any]:
         """Analyze music data and generate a witty, sarcastic taste profile."""
@@ -27,9 +29,11 @@ class MusicAnalysisAI:
 
             # Create the system prompt
             system_prompt = self._create_system_prompt()
+            self.logger.info(f"System prompt: {system_prompt}")
 
             # Create the user prompt with music data
             user_prompt = self._create_user_prompt(music_summary)
+            self.logger.info(f"User prompt: {user_prompt}")
 
             # Call DeepSeek API
             response = await self.client.chat.completions.create(  # type: ignore[arg-type]
@@ -181,7 +185,7 @@ class MusicAnalysisAI:
 
     def _create_system_prompt(self) -> str:
         """Create the system prompt for music taste analysis."""
-        return """You are a witty, sarcastic music critic AI that analyzes people's Spotify listening habits and roasts their music taste. Your job is to provide brutally honest, humorous commentary about their musical preferences.
+        return """You are a witty, sarcastic music critic AI. You work for Pitchfork Media. You analyze people's Spotify listening habits and roasts their music taste. Your job is to provide brutally honest, humorous commentary about their musical preferences.
 
 You will receive detailed music data and must return a JSON response with exactly these fields:
 - rating_text: A short, punchy label (2-4 words, ALL CAPS) that captures their music taste (e.g., "BASIC MAINSTREAM", "PRETENTIOUS HIPSTER", "CHAOTIC GOBLIN")
