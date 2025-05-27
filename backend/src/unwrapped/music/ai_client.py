@@ -196,6 +196,8 @@ You will receive detailed music data and must return a JSON response with exactl
 Your analysis should consider:
 - Genre diversity and obscurity
 - Popularity patterns (mainstream vs underground)
+- Critical acclaim score
+- Music snob score
 - Artist loyalty and exploration patterns
 - Listening consistency across time periods
 - Track/artist repetition patterns
@@ -207,7 +209,7 @@ EXAMPLE JSON OUTPUT:
     "rating_text": "NOSTALGIC MILLENNIAL",
     "rating_description": "Your Spotify looks like a 2010s time capsule that someone accidentally left in a coffee shop. You're still emotionally attached to bands that peaked when skinny jeans were cool, and your 'discover weekly' is just Spotify gently suggesting you might want to try something from this decade. The fact that you have both indie folk and pop-punk in your top genres tells me you're having an identity crisis that started in college and never quite resolved.",
     "critical_acclaim_score": 0.2,
-    "music_snob_score": -0.3
+    "music_snob_score": 0.3
 }"""
 
     def _create_user_prompt(self, music_summary: dict[str, Any]) -> str:
@@ -267,6 +269,6 @@ LISTENING PATTERNS BY TIME PERIOD:"""
             if track_info:
                 prompt += f"\n{period_name}: {'; '.join(track_info)}"
 
-        prompt += "\n\nBased on this data, provide a witty, sarcastic analysis of their music taste in JSON format."
+        prompt += "\n\nBased on this data, provide a witty, sarcastic analysis of their music taste in JSON format. Ensure the rating description is between 200 and 400 words."
 
         return prompt
