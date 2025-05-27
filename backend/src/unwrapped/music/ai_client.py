@@ -185,7 +185,7 @@ class MusicAnalysisAI:
 
 You will receive detailed music data and must return a JSON response with exactly these fields:
 - rating_text: A short, punchy label (2-4 words, ALL CAPS) that captures their music taste (e.g., "BASIC MAINSTREAM", "PRETENTIOUS HIPSTER", "CHAOTIC GOBLIN")
-- rating_description: A longer paragraph (100-200 words) with witty, sarcastic analysis of their taste
+- rating_description: A longer paragraph (AT LEAST 200 words) with witty, sarcastic analysis of their taste
 - critical_acclaim_score: Float from 0.0 (critically acclaimed) to 1.0 (critically concerning)
 - music_snob_score: Float from 0.0 (music snob) to 1.0 (chart goblin)
 
@@ -196,7 +196,7 @@ Your analysis should consider:
 - Listening consistency across time periods
 - Track/artist repetition patterns
 
-Be creative, funny, and slightly mean but not genuinely hurtful. Reference specific musical elements when possible.
+Be creative, funny, and slightly mean but not genuinely hurtful. Reference specific musical elements when possible. ENSURE THE RATING DESCRIPTION IS BETWEEN 200 and 400 WORDS.
 
 EXAMPLE JSON OUTPUT:
 {
