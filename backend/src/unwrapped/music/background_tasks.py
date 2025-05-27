@@ -1,6 +1,7 @@
 """Background task handlers for music analysis processing."""
 
 from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 

@@ -331,8 +331,6 @@ SPOTIFY_REDIRECT_URI=https://127.0.0.1:8443/api/v1/auth/callback
 FRONTEND_URL=https://127.0.0.1:5174
 BACKEND_URL=https://127.0.0.1:8443
 
-# OpenAI (for future use)
-OPENAI_API_KEY=your_openai_api_key
 ```
 
 **⚠️ CRITICAL: Spotify App Dashboard Configuration Required**

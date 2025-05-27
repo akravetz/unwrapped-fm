@@ -15,7 +15,6 @@ from .models import (
     BeginAnalysisResponse,
     MusicAnalysisResponse,
     MusicAnalysisResult,
-    PublicAnalysisResponse,
 )
 from .result_persister import ResultPersister
 
@@ -162,19 +161,3 @@ class MusicAnalysisService:
             share_token=analysis.share_token,
             analyzed_at=analysis.completed_at or analysis.created_at,
         )
-
-    # Existing methods (for backward compatibility)
-
-    async def analyze_user_music_taste(self, user_id: int) -> MusicAnalysisResponse:
-        """Analyze user's music taste and return AI verdict."""
-        return await self.coordinator.analyze_user_music_taste(user_id)
-
-    async def get_latest_analysis(self, user_id: int) -> MusicAnalysisResponse | None:
-        """Get the user's most recent music analysis."""
-        return await self.result_persister.get_latest_analysis(user_id)
-
-    async def get_analysis_by_share_token(
-        self, share_token: str
-    ) -> PublicAnalysisResponse:
-        """Get analysis result by share token for public viewing."""
-        return await self.result_persister.get_analysis_by_share_token(share_token)

@@ -25,7 +25,9 @@ class TestAuthEndpoints:
             assert response.status_code == 200
             data = response.json()
             assert "authorization_url" in data
-            assert data["authorization_url"].startswith("https://accounts.spotify.com/authorize")
+            assert data["authorization_url"].startswith(
+                "https://accounts.spotify.com/authorize"
+            )
 
     @pytest.mark.asyncio
     async def test_login_endpoint_spotify_error(self, client):
