@@ -4,10 +4,9 @@ from datetime import UTC, datetime
 
 from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import desc, select
 
 from ..core.logging import get_logger
-from .analysis_coordinator import AnalysisCoordinator
 from .background_tasks import process_music_analysis_task
 from .models import (
     AnalysisStatus,
@@ -15,8 +14,8 @@ from .models import (
     BeginAnalysisResponse,
     MusicAnalysisResponse,
     MusicAnalysisResult,
+    PublicAnalysisResponse,
 )
-from .result_persister import ResultPersister
 
 
 class MusicAnalysisService:
@@ -24,11 +23,7 @@ class MusicAnalysisService:
 
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.coordinator = AnalysisCoordinator(session)
-        self.result_persister = ResultPersister(session)
         self.logger = get_logger(__name__)
-
-    # New background task methods
 
     async def begin_analysis(
         self, user_id: int, background_tasks: BackgroundTasks
@@ -161,3 +156,111 @@ class MusicAnalysisService:
             share_token=analysis.share_token,
             analyzed_at=analysis.completed_at or analysis.created_at,
         )
+
+    async def get_analysis_by_share_token(
+        self, share_token: str
+    ) -> PublicAnalysisResponse:
+        """
+        Get analysis result by share token for public viewing.
+
+        Args:
+            share_token: The share token to look up
+
+        Returns:
+            PublicAnalysisResponse with analysis data (no sensitive info)
+
+        Raises:
+            HTTPException: If share token not found
+        """
+        try:
+            stmt = select(MusicAnalysisResult).where(
+                MusicAnalysisResult.share_token == share_token
+            )
+            result = await self.session.execute(stmt)
+            analysis = result.scalar_one_or_none()
+
+            if not analysis:
+                self.logger.warning(f"Share token not found: {share_token}")
+                raise HTTPException(status_code=404, detail="Analysis not found")
+
+            # Ensure analysis is completed and has required data
+            if analysis.status != AnalysisStatus.COMPLETED or not all(
+                [
+                    analysis.rating_text,
+                    analysis.rating_description,
+                    analysis.critical_acclaim_score is not None,
+                    analysis.music_snob_score is not None,
+                ]
+            ):
+                self.logger.warning(
+                    f"Incomplete analysis accessed via share token: {share_token}"
+                )
+                raise HTTPException(status_code=404, detail="Analysis not found")
+
+            self.logger.info(f"Public analysis accessed via share token: {share_token}")
+
+            return PublicAnalysisResponse(
+                rating_text=analysis.rating_text,
+                rating_description=analysis.rating_description,
+                critical_acclaim_score=analysis.critical_acclaim_score,
+                music_snob_score=analysis.music_snob_score,
+                analyzed_at=analysis.completed_at or analysis.created_at,
+            )
+
+        except HTTPException:
+            raise  # Re-raise HTTP exceptions
+        except Exception as e:
+            self.logger.error(f"Failed to get analysis by share token: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error") from e
+
+    async def get_latest_analysis(self, user_id: int) -> MusicAnalysisResponse | None:
+        """
+        Get the user's most recent music analysis.
+
+        Args:
+            user_id: ID of the user
+
+        Returns:
+            MusicAnalysisResponse if found, None if no analysis exists
+
+        Raises:
+            HTTPException: On database errors
+        """
+        try:
+            stmt = (
+                select(MusicAnalysisResult)
+                .where(MusicAnalysisResult.user_id == user_id)
+                .order_by(desc(MusicAnalysisResult.created_at))
+                .limit(1)
+            )
+
+            result = await self.session.execute(stmt)
+            analysis = result.scalar_one_or_none()
+
+            if not analysis:
+                return None
+
+            # Only return completed analyses
+            if analysis.status != AnalysisStatus.COMPLETED or not all(
+                [
+                    analysis.rating_text,
+                    analysis.rating_description,
+                    analysis.critical_acclaim_score is not None,
+                    analysis.music_snob_score is not None,
+                    analysis.share_token,
+                ]
+            ):
+                return None
+
+            return MusicAnalysisResponse(
+                rating_text=analysis.rating_text,
+                rating_description=analysis.rating_description,
+                critical_acclaim_score=analysis.critical_acclaim_score,
+                music_snob_score=analysis.music_snob_score,
+                share_token=analysis.share_token,
+                analyzed_at=analysis.completed_at or analysis.created_at,
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to get latest analysis for user {user_id}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error") from e

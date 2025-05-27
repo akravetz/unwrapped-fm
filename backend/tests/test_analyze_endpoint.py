@@ -103,8 +103,11 @@ class TestAnalyzeEndpoints:
     ):
         """Test getting latest analysis when analysis exists."""
         # Create a test analysis result
+        from src.unwrapped.music.models import AnalysisStatus
+
         analysis = MusicAnalysisResult(
             user_id=test_user.id,
+            status=AnalysisStatus.COMPLETED,
             rating_text="TEST RATING",
             rating_description="Test description",
             critical_acclaim_score=0.5,
