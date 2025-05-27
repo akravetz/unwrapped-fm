@@ -144,8 +144,8 @@ class MusicAnalysisService:
             [
                 analysis.rating_text,
                 analysis.rating_description,
-                analysis.x_axis_pos is not None,
-                analysis.y_axis_pos is not None,
+                analysis.critical_acclaim_score is not None,
+                analysis.music_snob_score is not None,
                 analysis.share_token,
             ]
         ):
@@ -157,8 +157,8 @@ class MusicAnalysisService:
         return MusicAnalysisResponse(
             rating_text=analysis.rating_text,
             rating_description=analysis.rating_description,
-            x_axis_pos=analysis.x_axis_pos,
-            y_axis_pos=analysis.y_axis_pos,
+            critical_acclaim_score=analysis.critical_acclaim_score,
+            music_snob_score=analysis.music_snob_score,
             share_token=analysis.share_token,
             analyzed_at=analysis.completed_at or analysis.created_at,
         )

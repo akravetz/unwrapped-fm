@@ -466,7 +466,7 @@ with patch("src.unwrapped.music.spotify_data_collector.spotify_music_client"), \
 
     # Configure AI mock for async operation
     async def mock_analyze_music_taste(music_data):
-        return {"rating_text": "TEST", "x_axis_pos": 0.5}
+        return {"rating_text": "TEST", "critcal_acclaim_score": 0.5}
     mock_ai.return_value.analyze_music_taste = mock_analyze_music_taste
 
 # Key insight: Service decomposition requires updating test mocks to target

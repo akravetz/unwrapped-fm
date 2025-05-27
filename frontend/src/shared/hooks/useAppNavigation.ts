@@ -28,7 +28,8 @@ export function useAppNavigation() {
         const response = await apiClient.handleAuthCallback(code, state)
         tokenService.setToken(response.access_token)
         await refreshUser()
-        router.replace('/dashboard')
+        // Clean up URL and let smart routing handle navigation
+        router.replace('/')
       } catch (error) {
         console.error('Auth callback error:', error)
         router.replace('/?error=auth_failed')
@@ -48,8 +49,8 @@ export function useAppNavigation() {
         tokenService.setToken(token)
         // Refresh user state to update authentication
         await refreshUser()
-        // Clean up URL and navigate to dashboard
-        router.replace('/dashboard')
+        // Clean up URL and let smart routing handle navigation
+        router.replace('/')
       } catch (error) {
         console.error('Token processing error:', error)
         router.replace('/?error=token_invalid')
@@ -72,7 +73,7 @@ export function useAppNavigation() {
   }, [handleAuthCallback, handleTokenFromUrl, isClient])
 
   return {
-    navigateToDashboard: () => router.push('/dashboard'),
+    navigateToHome: () => router.push('/'),
     navigateToLogin: () => router.push('/'),
     handleAuthCallback,
     handleTokenFromUrl,

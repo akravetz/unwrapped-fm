@@ -52,8 +52,8 @@ class AnalysisCoordinator:
             return {
                 "rating_text": "MYSTERIOUS LISTENER",
                 "rating_description": "Your music taste is so unique that even Spotify doesn't know what to make of it. Either you're incredibly private about your listening habits, or you're the type of person who listens to music on vinyl exclusively. We respect the mystery.",
-                "x_axis_pos": 0.0,
-                "y_axis_pos": 0.0,
+                "critical_acclaim_score": 0.0,
+                "music_snob_score": 0.0,
             }
 
         try:
@@ -141,6 +141,6 @@ class AnalysisCoordinator:
         return {
             "rating_text": rating_text,
             "rating_description": description,
-            "x_axis_pos": x_pos,
-            "y_axis_pos": y_pos,
+            "critical_acclaim_score": x_pos,
+            "music_snob_score": y_pos,
         }

@@ -54,19 +54,19 @@ class MusicAnalysisAI:
             required_fields = [
                 "rating_text",
                 "rating_description",
-                "x_axis_pos",
-                "y_axis_pos",
+                "critical_acclaim_score",
+                "music_snob_score",
             ]
             for field in required_fields:
                 if field not in analysis_result:
                     raise SpotifyAPIError(f"Missing required field: {field}")
 
             # Ensure axis positions are within valid range
-            analysis_result["x_axis_pos"] = max(
-                -1.0, min(1.0, float(analysis_result["x_axis_pos"]))
+            analysis_result["critical_acclaim_score"] = max(
+                -1.0, min(1.0, float(analysis_result["critical_acclaim_score"]))
             )
-            analysis_result["y_axis_pos"] = max(
-                -1.0, min(1.0, float(analysis_result["y_axis_pos"]))
+            analysis_result["music_snob_score"] = max(
+                -1.0, min(1.0, float(analysis_result["music_snob_score"]))
             )
 
             return analysis_result
@@ -186,8 +186,8 @@ class MusicAnalysisAI:
 You will receive detailed music data and must return a JSON response with exactly these fields:
 - rating_text: A short, punchy label (2-4 words, ALL CAPS) that captures their music taste (e.g., "BASIC MAINSTREAM", "PRETENTIOUS HIPSTER", "CHAOTIC GOBLIN")
 - rating_description: A longer paragraph (100-200 words) with witty, sarcastic analysis of their taste
-- x_axis_pos: Float from -1.0 (alternative/underground) to 1.0 (mainstream/popular)
-- y_axis_pos: Float from -1.0 (negative/roasting) to 1.0 (positive/praising)
+- critical_acclaim_score: Float from 0.0 (critically acclaimed) to 1.0 (critically concerning)
+- music_snob_score: Float from 0.0 (music snob) to 1.0 (chart goblin)
 
 Your analysis should consider:
 - Genre diversity and obscurity
@@ -202,8 +202,8 @@ EXAMPLE JSON OUTPUT:
 {
     "rating_text": "NOSTALGIC MILLENNIAL",
     "rating_description": "Your Spotify looks like a 2010s time capsule that someone accidentally left in a coffee shop. You're still emotionally attached to bands that peaked when skinny jeans were cool, and your 'discover weekly' is just Spotify gently suggesting you might want to try something from this decade. The fact that you have both indie folk and pop-punk in your top genres tells me you're having an identity crisis that started in college and never quite resolved.",
-    "x_axis_pos": 0.2,
-    "y_axis_pos": -0.3
+    "critical_acclaim_score": 0.2,
+    "music_snob_score": -0.3
 }"""
 
     def _create_user_prompt(self, music_summary: dict[str, Any]) -> str:

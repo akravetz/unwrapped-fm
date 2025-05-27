@@ -1,7 +1,6 @@
 """Background task handlers for music analysis processing."""
 
 from datetime import UTC, datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -62,8 +61,8 @@ async def process_music_analysis_task(
         # Step 4: Update the analysis record with results
         analysis.rating_text = analysis_result["rating_text"]
         analysis.rating_description = analysis_result["rating_description"]
-        analysis.x_axis_pos = analysis_result["x_axis_pos"]
-        analysis.y_axis_pos = analysis_result["y_axis_pos"]
+        analysis.critical_acclaim_score = analysis_result["critical_acclaim_score"]
+        analysis.music_snob_score = analysis_result["music_snob_score"]
         analysis.share_token = share_token
         analysis.status = AnalysisStatus.COMPLETED
         analysis.completed_at = datetime.now(UTC)
@@ -115,8 +114,8 @@ async def _analyze_music_with_ai(ai_client: MusicAnalysisAI, music_data: dict) -
         return {
             "rating_text": "MYSTERIOUS LISTENER",
             "rating_description": "Your music taste is so unique that even Spotify doesn't know what to make of it. Either you're incredibly private about your listening habits, or you're the type of person who listens to music on vinyl exclusively. We respect the mystery.",
-            "x_axis_pos": 0.0,
-            "y_axis_pos": 0.0,
+            "critical_acclaim_score": 0.0,
+            "music_snob_score": 0.0,
         }
 
     try:
@@ -165,7 +164,7 @@ def _fallback_analysis(music_data: dict) -> dict:
         if "pop" in genres or "mainstream" in str(genres).lower():
             rating_text = "BASIC MAINSTREAM"
             x_pos = 0.7  # Mainstream
-            y_pos = -0.3  # Slightly negative
+            y_pos = 0.3  # Slightly negative
             description = f"You're basically a walking Billboard Hot 100 playlist. Your music taste is so mainstream that Spotify's algorithm probably uses you as a baseline for 'popular music.' With an average track popularity of {avg_popularity:.0f}, you're the human equivalent of a radio station that only plays the hits."
         else:
             rating_text = "POPULAR TASTE"
@@ -175,12 +174,12 @@ def _fallback_analysis(music_data: dict) -> dict:
     elif avg_popularity < 30:
         if any(genre in ["experimental", "noise", "avant-garde"] for genre in genres):
             rating_text = "PRETENTIOUS HIPSTER"
-            x_pos = -0.8  # Very alternative
-            y_pos = -0.6  # Negative
+            x_pos = 0.8  # Very alternative
+            y_pos = 0.6  # Negative
             description = f"Oh look, someone who thinks music peaked in an abandoned warehouse in Berlin. Your average popularity of {avg_popularity:.0f} screams 'I liked them before they were cool' energy. You probably own vinyl records that sound like construction equipment and call it 'art.'"
         else:
             rating_text = "UNDERGROUND EXPLORER"
-            x_pos = -0.5
+            x_pos = 0.5
             y_pos = 0.4
             description = f"You've got good taste in finding hidden gems with your {avg_popularity:.0f} average popularity. You're like a musical archaeologist, digging up artists that deserve more recognition. Respect for not following the crowd."
     else:
@@ -191,8 +190,8 @@ def _fallback_analysis(music_data: dict) -> dict:
             description = f"You listen to {genre_count} different genres like you're trying to collect them all. Your music taste has more variety than a buffet restaurant. Are you having an identity crisis or just really indecisive?"
         elif genre_count < 3:
             rating_text = "ONE-TRACK MIND"
-            x_pos = -0.2
-            y_pos = -0.4
+            x_pos = 0.2
+            y_pos = 0.4
             description = f"With only {genre_count} genres in your rotation, you've found your lane and you're sticking to it. You're either incredibly focused or incredibly boring. We're leaning towards the latter."
         else:
             rating_text = "BALANCED LISTENER"
@@ -203,6 +202,6 @@ def _fallback_analysis(music_data: dict) -> dict:
     return {
         "rating_text": rating_text,
         "rating_description": description,
-        "x_axis_pos": x_pos,
-        "y_axis_pos": y_pos,
+        "critical_acclaim_score": x_pos,
+        "music_snob_score": y_pos,
     }

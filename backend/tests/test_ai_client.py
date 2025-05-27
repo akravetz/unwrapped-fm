@@ -60,8 +60,8 @@ class TestMusicAnalysisAI:
         mock_response = {
             "rating_text": "TEST RATING",
             "rating_description": "This is a test description of music taste.",
-            "x_axis_pos": 0.5,
-            "y_axis_pos": 0.3,
+            "critical_acclaim_score": 0.5,
+            "music_snob_score": 0.3,
         }
 
         mock_completion = AsyncMock()
@@ -80,8 +80,8 @@ class TestMusicAnalysisAI:
         assert (
             result["rating_description"] == "This is a test description of music taste."
         )
-        assert result["x_axis_pos"] == 0.5
-        assert result["y_axis_pos"] == 0.3
+        assert result["critical_acclaim_score"] == 0.5
+        assert result["music_snob_score"] == 0.3
 
     @pytest.mark.asyncio
     async def test_analyze_music_taste_empty_response(
@@ -148,8 +148,8 @@ class TestMusicAnalysisAI:
         mock_response = {
             "rating_text": "TEST RATING",
             "rating_description": "Test description",
-            "x_axis_pos": 2.0,  # Out of range
-            "y_axis_pos": -2.0,  # Out of range
+            "critical_acclaim_score": 2.0,  # Out of range
+            "music_snob_score": -2.0,  # Out of range
         }
 
         mock_completion = AsyncMock()
@@ -165,8 +165,8 @@ class TestMusicAnalysisAI:
             result = await ai_client.analyze_music_taste(sample_music_data)
 
         # Values should be clamped to [-1.0, 1.0]
-        assert result["x_axis_pos"] == 1.0
-        assert result["y_axis_pos"] == -1.0
+        assert result["critical_acclaim_score"] == 1.0
+        assert result["music_snob_score"] == -1.0
 
     def test_prepare_music_summary(self, ai_client, sample_music_data):
         """Test music data summary preparation."""
@@ -208,8 +208,8 @@ class TestMusicAnalysisAI:
         assert "JSON response" in prompt
         assert "rating_text" in prompt
         assert "rating_description" in prompt
-        assert "x_axis_pos" in prompt
-        assert "y_axis_pos" in prompt
+        assert "critical_acclaim_score" in prompt
+        assert "music_snob_score" in prompt
 
     def test_create_user_prompt(self, ai_client, sample_music_data):
         """Test user prompt creation with music data."""

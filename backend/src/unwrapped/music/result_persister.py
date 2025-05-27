@@ -29,8 +29,8 @@ class ResultPersister:
                 user_id=user_id,
                 rating_text=analysis_result["rating_text"],
                 rating_description=analysis_result["rating_description"],
-                x_axis_pos=analysis_result["x_axis_pos"],
-                y_axis_pos=analysis_result["y_axis_pos"],
+                critical_acclaim_score=analysis_result["critical_acclaim_score"],
+                music_snob_score=analysis_result["music_snob_score"],
                 share_token=share_token,
             )
 
@@ -51,8 +51,8 @@ class ResultPersister:
             return MusicAnalysisResponse(
                 rating_text=db_result.rating_text,
                 rating_description=db_result.rating_description,
-                x_axis_pos=db_result.x_axis_pos,
-                y_axis_pos=db_result.y_axis_pos,
+                critical_acclaim_score=db_result.critical_acclaim_score,
+                music_snob_score=db_result.music_snob_score,
                 share_token=db_result.share_token,
                 analyzed_at=db_result.created_at,
             )
@@ -79,8 +79,8 @@ class ResultPersister:
             return MusicAnalysisResponse(
                 rating_text=analysis.rating_text,  # type: ignore[attr-defined]
                 rating_description=analysis.rating_description,  # type: ignore[attr-defined]
-                x_axis_pos=analysis.x_axis_pos,  # type: ignore[attr-defined]
-                y_axis_pos=analysis.y_axis_pos,  # type: ignore[attr-defined]
+                critical_acclaim_score=analysis.critical_acclaim_score,  # type: ignore[attr-defined]
+                music_snob_score=analysis.music_snob_score,  # type: ignore[attr-defined]
                 share_token=analysis.share_token,
                 analyzed_at=analysis.created_at,
             )
@@ -105,8 +105,8 @@ class ResultPersister:
             return PublicAnalysisResponse(
                 rating_text=analysis.rating_text,  # type: ignore[attr-defined]
                 rating_description=analysis.rating_description,  # type: ignore[attr-defined]
-                x_axis_pos=analysis.x_axis_pos,  # type: ignore[attr-defined]
-                y_axis_pos=analysis.y_axis_pos,  # type: ignore[attr-defined]
+                critical_acclaim_score=analysis.critical_acclaim_score,  # type: ignore[attr-defined]
+                music_snob_score=analysis.music_snob_score,  # type: ignore[attr-defined]
                 analyzed_at=analysis.created_at,
             )
 

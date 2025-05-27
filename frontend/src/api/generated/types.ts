@@ -317,10 +317,10 @@ export interface components {
             rating_text: string;
             /** Rating Description */
             rating_description: string;
-            /** X Axis Pos */
-            x_axis_pos: number;
-            /** Y Axis Pos */
-            y_axis_pos: number;
+            /** Critical Acclaim Score */
+            critical_acclaim_score: number;
+            /** Music Snob Score */
+            music_snob_score: number;
             /** Share Token */
             share_token: string;
             /**
@@ -338,10 +338,10 @@ export interface components {
             rating_text: string;
             /** Rating Description */
             rating_description: string;
-            /** X Axis Pos */
-            x_axis_pos: number;
-            /** Y Axis Pos */
-            y_axis_pos: number;
+            /** Critical Acclaim Score */
+            critical_acclaim_score: number;
+            /** Music Snob Score */
+            music_snob_score: number;
             /**
              * Analyzed At
              * Format: date-time

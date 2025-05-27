@@ -61,8 +61,8 @@ class TestMusicAnalyzerWorkflow:
                 return_value={
                     "rating_text": "E2E TEST MUSIC TASTE",
                     "rating_description": "This is an end-to-end test description of your music taste.",
-                    "x_axis_pos": 0.7,
-                    "y_axis_pos": -0.3,
+                    "critical_acclaim_score": 0.7,
+                    "music_snob_score": 0.3,
                 }
             )
 
@@ -131,8 +131,8 @@ class TestMusicAnalyzerWorkflow:
             # Verify result structure and content
             assert "rating_text" in result_data
             assert "rating_description" in result_data
-            assert "x_axis_pos" in result_data
-            assert "y_axis_pos" in result_data
+            assert "critical_acclaim_score" in result_data
+            assert "music_snob_score" in result_data
             assert "share_token" in result_data
             assert "analyzed_at" in result_data
 
@@ -142,19 +142,19 @@ class TestMusicAnalyzerWorkflow:
                 result_data["rating_description"]
                 == "This is an end-to-end test description of your music taste."
             )
-            assert result_data["x_axis_pos"] == 0.7
-            assert result_data["y_axis_pos"] == -0.3
+            assert result_data["critical_acclaim_score"] == 0.7
+            assert result_data["music_snob_score"] == 0.3
 
             # Verify data types
             assert isinstance(result_data["rating_text"], str)
             assert isinstance(result_data["rating_description"], str)
-            assert isinstance(result_data["x_axis_pos"], float)
-            assert isinstance(result_data["y_axis_pos"], float)
+            assert isinstance(result_data["critical_acclaim_score"], float)
+            assert isinstance(result_data["music_snob_score"], float)
             assert isinstance(result_data["share_token"], str)
 
             # Verify axis positions are within valid range
-            assert -1.0 <= result_data["x_axis_pos"] <= 1.0
-            assert -1.0 <= result_data["y_axis_pos"] <= 1.0
+            assert 0.0 <= result_data["critical_acclaim_score"] <= 1.0
+            assert 0.0 <= result_data["music_snob_score"] <= 1.0
 
             # Step 4: Verify the workflow completed successfully
             # The API responses above already verify the data integrity
@@ -225,8 +225,8 @@ class TestMusicAnalyzerWorkflow:
                 return_value={
                     "rating_text": "IDEMPOTENT TEST",
                     "rating_description": "Test description",
-                    "x_axis_pos": 0.5,
-                    "y_axis_pos": 0.5,
+                    "critical_acclaim_score": 0.5,
+                    "music_snob_score": 0.5,
                 }
             )
 
@@ -506,8 +506,8 @@ class TestMusicAnalyzerWorkflow:
                 return_value={
                     "rating_text": "TOKEN USER TEST",
                     "rating_description": "Analysis for user with existing tokens.",
-                    "x_axis_pos": -0.2,
-                    "y_axis_pos": 0.8,
+                    "critical_acclaim_score": -0.2,
+                    "music_snob_score": 0.8,
                 }
             )
 
@@ -553,5 +553,5 @@ class TestMusicAnalyzerWorkflow:
             assert result_response.status_code == 200
             result_data = result_response.json()
             assert result_data["rating_text"] == "TOKEN USER TEST"
-            assert result_data["x_axis_pos"] == -0.2
-            assert result_data["y_axis_pos"] == 0.8
+            assert result_data["critical_acclaim_score"] == 0.2
+            assert result_data["music_snob_score"] == 0.8

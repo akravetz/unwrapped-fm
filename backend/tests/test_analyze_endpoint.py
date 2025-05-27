@@ -37,8 +37,8 @@ class TestAnalyzeEndpoints:
                 return {
                     "rating_text": "TEST MUSIC TASTE",
                     "rating_description": "This is a test description of your music taste.",
-                    "x_axis_pos": 0.5,
-                    "y_axis_pos": -0.2,
+                    "critical_acclaim_score": 0.5,
+                    "music_snob_score": 0.2,
                 }
 
             mock_ai_instance.analyze_music_taste = mock_analyze_music_taste
@@ -54,20 +54,20 @@ class TestAnalyzeEndpoints:
         # Verify response structure
         assert "rating_text" in data
         assert "rating_description" in data
-        assert "x_axis_pos" in data
-        assert "y_axis_pos" in data
+        assert "critical_acclaim_score" in data
+        assert "music_snob_score" in data
         assert "share_token" in data
         assert "analyzed_at" in data
 
         # Verify data types
         assert isinstance(data["rating_text"], str)
         assert isinstance(data["rating_description"], str)
-        assert isinstance(data["x_axis_pos"], float)
-        assert isinstance(data["y_axis_pos"], float)
+        assert isinstance(data["critical_acclaim_score"], float)
+        assert isinstance(data["music_snob_score"], float)
 
         # Verify axis positions are within valid range
-        assert -1.0 <= data["x_axis_pos"] <= 1.0
-        assert -1.0 <= data["y_axis_pos"] <= 1.0
+        assert 0.0 <= data["critical_acclaim_score"] <= 1.0
+        assert 0.0 <= data["music_snob_score"] <= 1.0
 
     @pytest.mark.asyncio
     async def test_analyze_music_taste_no_token(self, client: AsyncClient):
@@ -107,8 +107,8 @@ class TestAnalyzeEndpoints:
             user_id=test_user.id,
             rating_text="TEST RATING",
             rating_description="Test description",
-            x_axis_pos=0.5,
-            y_axis_pos=-0.3,
+            critical_acclaim_score=0.5,
+            music_snob_score=0.3,
             share_token="test_share_token",
         )
         async_session.add(analysis)
@@ -125,7 +125,7 @@ class TestAnalyzeEndpoints:
 
         assert data["rating_text"] == "TEST RATING"
         assert data["rating_description"] == "Test description"
-        assert data["x_axis_pos"] == 0.5
-        assert data["y_axis_pos"] == -0.3
+        assert data["critical_acclaim_score"] == 0.5
+        assert data["music_snob_score"] == 0.3
         assert data["share_token"] == "test_share_token"
         assert "analyzed_at" in data

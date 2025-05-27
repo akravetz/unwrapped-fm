@@ -17,6 +17,8 @@ import {
 import ShareIcon from '@mui/icons-material/Share'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { MusicAnalysisResponse } from '@/domains/music-analysis/types/music.types'
+import { MusicScoreBar } from './MusicScoreBar'
+import { COPY } from '@/lib/constants/copy'
 
 interface ResultsScreenProps {
   result: MusicAnalysisResponse
@@ -100,14 +102,24 @@ export function ResultsScreen({ result, onShare }: ResultsScreenProps) {
                       <Typography variant="h5" gutterBottom>
                         {result.rating_text}
                       </Typography>
-                      <Typography variant="body1">
+                      <Typography variant="body1" sx={{ mb: 3 }}>
                         {result.rating_description}
                       </Typography>
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Position: ({result.x_axis_pos.toFixed(2)}, {result.y_axis_pos.toFixed(2)})
-                        </Typography>
-                      </Box>
+
+                      <Stack spacing={3}>
+                        <MusicScoreBar
+                          score={result.critical_acclaim_score}
+                          leftLabel={COPY.RESULTS.CHART_AXES.HORIZONTAL.LEFT}
+                          rightLabel={COPY.RESULTS.CHART_AXES.HORIZONTAL.RIGHT}
+                          color="primary"
+                        />
+                        <MusicScoreBar
+                          score={result.music_snob_score}
+                          leftLabel={COPY.RESULTS.CHART_AXES.VERTICAL.TOP}
+                          rightLabel={COPY.RESULTS.CHART_AXES.VERTICAL.BOTTOM}
+                          color="primary"
+                        />
+                      </Stack>
                     </CardContent>
                   </Card>
                 </Box>

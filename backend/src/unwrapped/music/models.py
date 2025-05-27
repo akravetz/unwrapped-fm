@@ -31,10 +31,10 @@ class MusicAnalysisResult(SQLModel, table=True):
     # AI Analysis Results (nullable for pending state)
     rating_text: str | None = Field(default=None)  # e.g., "HIPSTER TRASH"
     rating_description: str | None = Field(default=None)  # Full AI analysis text
-    x_axis_pos: float | None = Field(
+    critical_acclaim_score: float | None = Field(
         default=None
     )  # Position on x-axis of quadrant graph (-1.0 to 1.0)
-    y_axis_pos: float | None = Field(
+    music_snob_score: float | None = Field(
         default=None
     )  # Position on y-axis of quadrant graph (-1.0 to 1.0)
 
@@ -67,8 +67,8 @@ class MusicAnalysisResponse(SQLModel):
 
     rating_text: str
     rating_description: str
-    x_axis_pos: float
-    y_axis_pos: float
+    critical_acclaim_score: float
+    music_snob_score: float
     share_token: str
     analyzed_at: datetime
 
@@ -78,8 +78,8 @@ class PublicAnalysisResponse(SQLModel):
 
     rating_text: str
     rating_description: str
-    x_axis_pos: float
-    y_axis_pos: float
+    critical_acclaim_score: float
+    music_snob_score: float
     analyzed_at: datetime
 
 
