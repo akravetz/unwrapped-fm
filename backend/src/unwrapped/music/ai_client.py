@@ -43,7 +43,7 @@ class MusicAnalysisAI:
                     {"role": "user", "content": user_prompt},
                 ],
                 response_format={"type": "json_object"},  # type: ignore[arg-type]
-                max_tokens=800,
+                max_tokens=1000,
                 temperature=0.9,  # Add some creativity for witty responses
             )
 
