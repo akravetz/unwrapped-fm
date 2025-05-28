@@ -47,32 +47,54 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState)
   const [hasInitialized, setHasInitialized] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const apiClient = useApiClient()
 
   const refreshUser = useCallback(async () => {
-    if (!apiClient) return
+    if (!apiClient) {
+      console.log('[AuthContext] refreshUser: apiClient not available')
+      return
+    }
+
+    if (isRefreshing) {
+      console.log('[AuthContext] refreshUser: already refreshing, skipping')
+      return
+    }
+
+    console.log('[AuthContext] refreshUser: starting')
+    setIsRefreshing(true)
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true })
       const token = tokenService.getToken()
 
+      console.log('[AuthContext] refreshUser: token check', {
+        hasToken: !!token,
+        storageInfo: tokenService.getStorageInfo()
+      })
+
       if (!token || tokenService.isTokenExpired(token)) {
+        console.log('[AuthContext] refreshUser: no valid token, clearing auth state')
         tokenService.removeToken()
         dispatch({ type: 'SET_USER', payload: null })
         return
       }
 
+      console.log('[AuthContext] refreshUser: fetching user data')
       const user = await apiClient.getCurrentUser()
+      console.log('[AuthContext] refreshUser: user data received', { userId: user.id })
       dispatch({ type: 'SET_USER', payload: user })
     } catch (error) {
-      console.error('Failed to refresh user:', error)
+      console.error('[AuthContext] refreshUser: failed', error)
       tokenService.removeToken()
       dispatch({ type: 'SET_USER', payload: null })
       dispatch({ type: 'SET_ERROR', payload: 'Failed to authenticate' })
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false })
+      setIsRefreshing(false)
+      console.log('[AuthContext] refreshUser: completed')
     }
-  }, [apiClient])
+  }, [apiClient, isRefreshing])
 
   const login = useCallback(async () => {
     if (!apiClient) return
@@ -97,6 +119,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     if (apiClient && !hasInitialized) {
+      console.log('[AuthContext] Initializing authentication')
       setHasInitialized(true)
       refreshUser()
     }
