@@ -45,6 +45,9 @@ task format-all                                     # Format backend code
 - **Migrations**: Atlas CLI for schema management
 - **Testing**: pytest with testcontainers (auto-spins up PostgreSQL)
 
+**Semantic Merging**
+- We use semantic merging for documentation changes
+
 **Key Modules:**
 - `src/unwrapped/auth/`: Authentication, user management, Spotify OAuth
 - `src/unwrapped/music/`: Music analysis, AI integration, sharing features
@@ -127,7 +130,3 @@ function MyComponent() {
 **Phase 4 (AI Analysis)**: ⏳ Planned
 
 Current implementation includes full Spotify OAuth integration, JWT authentication, user management, and SSR-ready frontend architecture.
-
-
-### FastAPI extentions
--  always use background tasks for long running api
