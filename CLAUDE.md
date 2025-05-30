@@ -13,10 +13,6 @@ uv run pytest --cov=src --cov-report=html            # Test with coverage
 uv run ruff check . && uv run ruff format .          # Lint and format
 ```
 
-### FastAPI extentions
--  always use background tasks for long running apis
-
-### Frontend Development
 ```bash
 cd frontend/
 npm run dev                                           # Dev server on :5174
@@ -131,3 +127,7 @@ function MyComponent() {
 **Phase 4 (AI Analysis)**: ⏳ Planned
 
 Current implementation includes full Spotify OAuth integration, JWT authentication, user management, and SSR-ready frontend architecture.
+
+
+### FastAPI extentions
+-  always use background tasks for long running api
