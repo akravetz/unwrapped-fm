@@ -16,6 +16,7 @@ uv run ruff check . && uv run ruff format .          # Lint and format
 ### doing weird stuff
 - this tool uses semantic merging of documentation files
 - this ensures documentation stays up to date with the main branch
+- We will update this over time
 
 ### Frontend Development
 ```bash
