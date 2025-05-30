@@ -73,6 +73,7 @@ task format-all                                     # Format backend code
 - **Datetime**: `datetime.now(UTC)` not deprecated `datetime.utcnow()`
 - **Exceptions**: Always chain with `raise HTTPException(...) from e`
 - **Async**: Use async/await for all database and HTTP operations
+- **Background Tasks**: Always use background tasks for long running APIs
 
 ### SSR-Safe Frontend Patterns
 **MANDATORY**: All frontend code must be SSR-compatible
