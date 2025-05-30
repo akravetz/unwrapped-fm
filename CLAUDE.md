@@ -13,6 +13,10 @@ uv run pytest --cov=src --cov-report=html            # Test with coverage
 uv run ruff check . && uv run ruff format .          # Lint and format
 ```
 
+### doing weird stuff
+- this tool uses semantic merging of documentation files
+- this ensures documentation stays up to date with the main branch
+
 ### Frontend Development
 ```bash
 cd frontend/

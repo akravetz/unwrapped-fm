@@ -12,3 +12,9 @@ repos:
     rev: v8.24.2
     hooks:
       - id: gitleaks
+  - repo: https://github.com/akravetz/sem-merge
+    rev: v1.0.0
+    hooks:
+      - id: semantic-merge
+        files: \.(md|mdc)$
+        exclude: ^(node_modules/|\.git/|docs/generated/)
